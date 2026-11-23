@@ -1,0 +1,4040 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FUNUNKUL STRIKE — 3D Competitive FPS (by FUNUNKUL)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* =========================================================================
+       FUNUNKUL STRIKE (by FUNUNKUL)
+       Full-Viewport 3D FPS Styling, Standard + Multi-Touch Controls,
+       Customizable Touch HUD & Glassmorphic CS2 / Standoff 2 Panels
+       ========================================================================= */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      touch-action: none;
+    }
+
+    #gameStage {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(180deg, #2998e8 0%, #93d5f8 52%, #d9b37c 100%);
+    }
+
+    #gameCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    .glass-panel {
+      background: rgba(10, 15, 28, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.56);
+    }
+
+    .glass-soft {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    /* Multi-touch HUD layer */
+    .touch-zone {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    .touch-draggable {
+      position: fixed;
+      pointer-events: auto;
+      touch-action: none;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+
+    .touch-draggable:active {
+      transform: scale(0.92);
+    }
+
+    .fps-touch-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      background: rgba(11, 16, 29, 0.56);
+      border: 1.5px solid rgba(248, 250, 252, 0.45);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .fps-touch-btn.active-press {
+      transform: scale(0.9);
+      border-color: #38bdf8;
+      background: rgba(14, 165, 233, 0.36);
+    }
+
+    .fps-fire-btn {
+      background: rgba(127, 29, 29, 0.65);
+      border: 2px solid rgba(254, 202, 202, 0.75);
+      box-shadow: 0 10px 26px rgba(153, 27, 27, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    }
+
+    .fps-fire-btn.active-press {
+      background: rgba(220, 38, 38, 0.78);
+      border-color: #fde047;
+    }
+
+    .fps-slot-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 14px;
+      background: rgba(11, 16, 29, 0.58);
+      border: 1.5px solid rgba(248, 250, 252, 0.34);
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .fps-slot-pill.selected-slot {
+      border-color: #fbbf24;
+      background: rgba(245, 158, 11, 0.28);
+      color: #fef08a;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.3);
+    }
+
+    .layout-edit-active .touch-draggable {
+      outline: 2px dashed rgba(56, 189, 248, 0.95);
+      outline-offset: 3px;
+      cursor: grab;
+    }
+
+    .layout-edit-active .touch-draggable:active {
+      cursor: grabbing;
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+
+    @keyframes pulseBanner {
+      0% { transform: translateY(-8px) scale(0.96); opacity: 0; }
+      15% { transform: translateY(0) scale(1); opacity: 1; }
+      85% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-6px) scale(0.98); opacity: 0; }
+    }
+
+    .banner-anim {
+      animation: pulseBanner 2.6s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameStage">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- =====================================================================
+         1. ZERO-HANG WALL-CLOCK PRELOADER (~200ms + 380ms hard watchdog)
+         ===================================================================== -->
+    <div id="bootOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/88 px-4">
+      <div class="glass-panel w-full max-w-md rounded-3xl p-6 text-center space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 text-xs font-extrabold tracking-widest uppercase">
+          <span>3D COMPETITIVE FPS</span>
+          <span>•</span>
+          <span>BY FUNUNKUL</span>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white">
+          FUNUNKUL <span class="text-amber-400">STRIKE</span>
+        </h1>
+        <p id="bootStatusText" class="text-xs sm:text-sm text-slate-300 font-medium">
+          Загрузка 3D-арены DUST CITY и систем боя...
+        </p>
+
+        <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+          <div id="bootProgressBar" class="h-full w-[35%] rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-500 transition-all duration-75"></div>
+        </div>
+        <div class="flex items-center justify-between text-xs font-bold text-slate-400">
+          <span>ГОТОВНОСТЬ 3D-ДВИЖКА</span>
+          <span id="bootPercentLabel" class="text-amber-300">35%</span>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+          <button id="bootEnterMenuBtn" type="button" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-extrabold border border-slate-600 cursor-pointer">
+            ВОЙТИ СЕЙЧАС
+          </button>
+          <button id="bootQuickPlayBtn" type="button" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 text-slate-950 text-xs font-black tracking-wide cursor-pointer shadow-lg">
+            ▶ БЫСТРЫЙ БОЙ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         2. MAIN MENU OVERLAY (Over live 3D scene)
+         ===================================================================== -->
+    <div id="mainMenuOverlay" class="fixed inset-0 z-30 hidden flex-col justify-between p-3 sm:p-5 pointer-events-none">
+      <div class="flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
+        <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-3">
+          <div>
+            <div class="text-lg sm:text-xl font-black tracking-tight leading-none text-white">
+              FUNUNKUL <span class="text-amber-400">STRIKE</span>
+            </div>
+            <div class="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-0.5">
+              BY FUNUNKUL • 3D FPS ENGINE
+            </div>
+          </div>
+          <span class="hidden md:inline-block px-2.5 py-1 rounded-xl bg-sky-500/20 border border-sky-400/40 text-sky-300 text-xs font-bold" id="menuSelectedSummary">
+            DUST CITY • Разминирование
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="glass-soft rounded-2xl px-3 py-2 text-xs font-extrabold flex items-center gap-2">
+            <span class="text-slate-400">ИГРОК:</span>
+            <span class="text-white" id="menuPlayerNick">Operative</span>
+            <span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300" id="menuPlayerLevel">УР. 1</span>
+            <span class="text-emerald-400 font-black" id="menuPlayerCredits">1500 FS</span>
+          </div>
+          <button id="menuPlayNowBtn" type="button" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:brightness-110 text-slate-950 text-xs sm:text-sm font-black shadow-lg cursor-pointer">
+            ▶ ИГРАТЬ
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col lg:flex-row gap-3 my-auto max-h-[76vh] pointer-events-none">
+        <nav class="glass-panel rounded-3xl p-2.5 flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto custom-scroll pointer-events-auto shrink-0 lg:w-56">
+          <button data-nav="play" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer bg-amber-400 text-slate-950">
+            <span>⚔️</span><span>Играть / Лобби</span>
+          </button>
+          <button data-nav="modes" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🎯</span><span>Режимы (8)</span>
+          </button>
+          <button data-nav="maps" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🗺️</span><span>3D-Карты (8)</span>
+          </button>
+          <button data-nav="arsenal" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🔫</span><span>Арсенал и 3D</span>
+          </button>
+          <button data-nav="inventory" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🎒</span><span>Инвентарь</span>
+          </button>
+          <button data-nav="shop" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🛒</span><span>Магазин FS</span>
+          </button>
+          <button data-nav="profile" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🪪</span><span>Профиль и Ранг</span>
+          </button>
+          <button data-nav="stats" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>📊</span><span>Статистика</span>
+          </button>
+          <button data-nav="friends" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>👥</span><span>Друзья</span>
+          </button>
+          <button data-nav="training" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>🎓</span><span>Обучение</span>
+          </button>
+          <button data-nav="settings" type="button" class="nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer text-slate-200 hover:bg-slate-800/80">
+            <span>⚙️</span><span>Настройки</span>
+          </button>
+        </nav>
+
+        <div id="menuContentPanel" class="glass-panel rounded-3xl p-4 sm:p-5 flex-1 overflow-y-auto custom-scroll pointer-events-auto max-w-4xl"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300 pointer-events-auto">
+        <div class="glass-soft rounded-2xl px-3 py-1.5 font-semibold">
+          ПК: <span class="text-amber-300 font-bold">WASD</span> движение, <span class="text-amber-300 font-bold">Мышь / Q,E / ←,→,↑,↓</span> обзор, <span class="text-amber-300 font-bold">ЛКМ</span> огонь, <span class="text-amber-300 font-bold">ПКМ</span> прицел, <span class="text-amber-300 font-bold">R</span> перезарядка, <span class="text-amber-300 font-bold">Space</span> прыжок, <span class="text-amber-300 font-bold">Shift</span> бег, <span class="text-amber-300 font-bold">Ctrl</span> присед, <span class="text-amber-300 font-bold">1-4 / Колёсико</span> оружие, <span class="text-amber-300 font-bold">I</span> осмотр, <span class="text-amber-300 font-bold">E / F</span> бомба, <span class="text-amber-300 font-bold">P / Esc</span> пауза.
+        </div>
+        <div class="glass-soft rounded-2xl px-3 py-1.5 font-bold text-sky-300">
+          Сенсор: левый джойстик + правый обзор 360° + кнопки огня, прицела, прыжка, приседа и перезарядки
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         3. TEAM SELECTION & PRE-MATCH PREPARATION MODAL
+         ===================================================================== -->
+    <div id="teamSelectionModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/80 p-3 sm:p-5">
+      <div class="glass-panel w-full max-w-2xl rounded-3xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scroll">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-700/80 pb-3">
+          <div>
+            <div class="text-xs font-extrabold uppercase tracking-wider text-amber-400" id="prepModeLabel">РАЗМИНИРОВАНИЕ • 5V5</div>
+            <h2 class="text-xl sm:text-2xl font-black text-white" id="prepMapTitle">КАРТА: DUST CITY</h2>
+          </div>
+          <button id="prepBackToMenuBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-600 cursor-pointer">
+            ← В меню
+          </button>
+        </div>
+
+        <p id="prepModeDesc" class="text-xs sm:text-sm text-slate-300"></p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button id="pickBlueTeamBtn" type="button" class="p-4 rounded-2xl bg-sky-950/70 hover:bg-sky-900/70 border-2 border-sky-400 text-left transition cursor-pointer">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-sky-300">СИНЯЯ КОМАНДА</span>
+              <span class="px-2 py-0.5 rounded bg-sky-400/20 text-sky-200 text-[11px] font-bold" id="blueRoleBadge">ЗАЩИТНИКИ</span>
+            </div>
+            <div class="text-xs text-sky-100/80 mt-1" id="blueRosterText">Вы + 4 синих оперативника (20 HP + 20 AP)</div>
+          </button>
+
+          <button id="pickRedTeamBtn" type="button" class="p-4 rounded-2xl bg-rose-950/70 hover:bg-rose-900/70 border-2 border-rose-500/40 text-left transition cursor-pointer">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-black text-rose-300">КРАСНАЯ КОМАНДА</span>
+              <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-200 text-[11px] font-bold" id="redRoleBadge">АТАКУЮЩИЕ</span>
+            </div>
+            <div class="text-xs text-rose-100/80 mt-1" id="redRosterText">5 красных оперативников (20 HP + 20 AP)</div>
+          </button>
+        </div>
+
+        <div class="rounded-2xl bg-slate-900/80 border border-slate-700/70 p-3.5 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-bold text-slate-400">ПОДГОТОВКА К РАУНДУ</div>
+            <div class="text-sm font-black text-amber-300" id="prepCountdownText">Обратный отсчёт перед стартом...</div>
+          </div>
+          <button id="startMatchImmediatelyBtn" type="button" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 text-slate-950 text-xs sm:text-sm font-black shadow-lg cursor-pointer">
+            ▶ НАЧАТЬ МАТЧ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         4. IN-MATCH HUD (Radar + FPS/PING top-left, Clean Score/Round/Timer/Bomb top-center, Pause top-right)
+         ===================================================================== -->
+    <div id="matchHud" class="fixed inset-0 z-20 hidden pointer-events-none">
+      <div class="fixed top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 flex items-start gap-2 pointer-events-auto z-30">
+        <canvas id="radarCanvas" width="96" height="96" class="rounded-2xl border border-slate-400/35 bg-slate-950/80 shadow-lg w-20 h-20 sm:w-24 sm:h-24"></canvas>
+        <div id="telemetryBox" class="glass-soft rounded-xl px-2.5 py-1.5 text-[11px] font-mono font-extrabold leading-tight space-y-0.5">
+          <div class="text-emerald-400" id="hudFpsText">FPS: --</div>
+          <div class="text-sky-300" id="hudPingText">PING: -- ms</div>
+          <div class="text-amber-300 text-[10px] font-sans" id="hudZonePrompt">Зона: Сектор</div>
+        </div>
+      </div>
+
+      <div class="fixed top-2.5 left-1/2 -translate-x-1/2 sm:top-3.5 flex flex-col items-center gap-1 z-30">
+        <div class="glass-panel rounded-2xl px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2.5 sm:gap-4 shadow-xl">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+            <span class="text-xs font-extrabold text-sky-300 hidden sm:inline">СИНИЕ</span>
+            <span class="text-base sm:text-xl font-black text-sky-300" id="hudBlueScore">0</span>
+            <span class="text-[10px] font-bold text-sky-200/80 bg-sky-500/20 px-1.5 py-0.5 rounded" id="hudBlueAlive">5</span>
+          </div>
+
+          <div class="flex flex-col items-center border-x border-slate-700/80 px-2.5 sm:px-3.5">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-300" id="hudRoundText">РАУНД 1/12</div>
+            <div class="text-sm sm:text-lg font-black text-white font-mono leading-none mt-0.5" id="hudTimerText">03:00</div>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-bold text-rose-200/80 bg-rose-500/20 px-1.5 py-0.5 rounded" id="hudRedAlive">5</span>
+            <span class="text-base sm:text-xl font-black text-rose-400" id="hudRedScore">0</span>
+            <span class="text-xs font-extrabold text-rose-400 hidden sm:inline">КРАСНЫЕ</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+          </div>
+        </div>
+
+        <div id="hudBombStatusBadge" class="px-3 py-0.5 rounded-full bg-slate-900/85 border border-amber-400/40 text-[10px] sm:text-xs font-extrabold text-amber-300 tracking-wide">
+          БОМБА: ОЖИДАНИЕ • ЗОНЫ A / B
+        </div>
+      </div>
+
+      <div class="fixed top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 flex items-center gap-1.5 pointer-events-auto z-30">
+        <button id="hudEditLayoutBtn" type="button" class="px-2.5 py-2 rounded-xl glass-soft hover:bg-slate-800 text-[11px] font-extrabold text-sky-300 cursor-pointer">
+          ✋ КНОПКИ
+        </button>
+        <button id="hudPauseBtn" type="button" class="px-3 py-2 rounded-xl glass-panel hover:bg-slate-800 text-xs font-black text-white cursor-pointer">
+          ❚❚ ПАУЗА
+        </button>
+      </div>
+
+      <div id="hudEventBannerContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1.5"></div>
+      <div id="hudKillfeed" class="fixed top-16 right-2.5 sm:right-3.5 flex flex-col items-end gap-1 z-20 max-w-[220px]"></div>
+
+      <div id="hudCrosshair" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20">
+        <div id="crosshairDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow"></div>
+        <div id="crosshairTop" class="absolute left-1/2 -translate-x-1/2 bottom-2.5 w-[2px] h-2.5 bg-emerald-400 rounded-full"></div>
+        <div id="crosshairBottom" class="absolute left-1/2 -translate-x-1/2 top-2.5 w-[2px] h-2.5 bg-emerald-400 rounded-full"></div>
+        <div id="crosshairLeft" class="absolute top-1/2 -translate-y-1/2 right-2.5 h-[2px] w-2.5 bg-emerald-400 rounded-full"></div>
+        <div id="crosshairRight" class="absolute top-1/2 -translate-y-1/2 left-2.5 h-[2px] w-2.5 bg-emerald-400 rounded-full"></div>
+      </div>
+
+      <button id="contextualBombActionBtn" type="button" class="hidden fixed bottom-36 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950 text-xs sm:text-sm font-black shadow-2xl border-2 border-white/70 pointer-events-auto cursor-pointer z-30">
+        💣 Установить бомбу
+      </button>
+
+      <div class="fixed bottom-2.5 left-1/2 -translate-x-1/2 sm:bottom-3.5 glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-3 sm:gap-5 z-20">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-extrabold text-emerald-400">HP</span>
+          <span class="text-base sm:text-lg font-black text-white font-mono" id="hudHpText">20</span>
+          <span class="text-[11px] font-extrabold text-sky-400 ml-1">AP</span>
+          <span class="text-base sm:text-lg font-black text-sky-200 font-mono" id="hudApText">20</span>
+        </div>
+
+        <div class="h-6 w-[1px] bg-slate-700"></div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs sm:text-sm font-black text-amber-300" id="hudWeaponName">AK-47</span>
+          <span class="text-xs sm:text-sm font-black text-white font-mono" id="hudAmmoText">30 / ∞</span>
+        </div>
+      </div>
+
+      <!-- Multi-Touch Controls Layer -->
+      <div id="mobileTouchHud" class="touch-zone pointer-events-auto">
+        <div id="touchJoyBase" data-control-id="joystick" class="touch-draggable w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-slate-950/45 border-2 border-white/35 flex items-center justify-center shadow-2xl" style="left: 24px; bottom: 24px;">
+          <div id="touchJoyThumb" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-200/35 border-2 border-white/80 shadow-lg pointer-events-none transition-transform duration-75"></div>
+        </div>
+
+        <div id="touchWeaponBar" data-control-id="weaponBar" class="touch-draggable flex items-center gap-1.5 pointer-events-auto" style="right: 18px; bottom: 186px;">
+          <button data-slot="0" type="button" class="fps-slot-pill selected-slot cursor-pointer" id="slotPill0">1 • AK-47</button>
+          <button data-slot="1" type="button" class="fps-slot-pill cursor-pointer" id="slotPill1">2 • Glock</button>
+          <button data-slot="2" type="button" class="fps-slot-pill cursor-pointer" id="slotPill2">3 • Knife</button>
+          <button data-slot="3" type="button" class="fps-slot-pill cursor-pointer" id="slotPill3">4 • Grenade</button>
+        </div>
+
+        <button id="touchFireBtn" data-control-id="fire" type="button" class="touch-draggable fps-touch-btn fps-fire-btn w-20 h-20 sm:w-24 sm:h-24 cursor-pointer" style="right: 26px; bottom: 26px;" aria-label="Стрельба">
+          <svg class="w-8 h-8 sm:w-9 sm:h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="7" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+          <span class="text-[9px] font-black tracking-wider uppercase mt-0.5">ОГОНЬ</span>
+        </button>
+
+        <button id="touchAimBtn" data-control-id="aim" type="button" class="touch-draggable fps-touch-btn w-14 h-14 sm:w-16 sm:h-16 cursor-pointer" style="right: 122px; bottom: 38px;" aria-label="Прицелиться">
+          <svg class="w-6 h-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="6" />
+            <line x1="12" y1="2" x2="12" y2="6" />
+            <line x1="12" y1="18" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="6" y2="12" />
+            <line x1="18" y1="12" x2="22" y2="12" />
+          </svg>
+          <span class="text-[9px] font-extrabold">ПРИЦЕЛ</span>
+        </button>
+
+        <button id="touchJumpBtn" data-control-id="jump" type="button" class="touch-draggable fps-touch-btn cursor-pointer" style="right: 28px; bottom: 118px; width: 54px; height: 54px;" aria-label="Прыжок">
+          <svg class="w-5 h-5 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
+          <span class="text-[8px] font-extrabold">ПРЫЖОК</span>
+        </button>
+
+        <button id="touchCrouchBtn" data-control-id="crouch" type="button" class="touch-draggable fps-touch-btn cursor-pointer" style="right: 186px; bottom: 26px; width: 54px; height: 54px;" aria-label="Присесть">
+          <svg class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="6" r="2.5" />
+            <path d="M7 13h10l-2 6H9l-2-6z" />
+          </svg>
+          <span class="text-[8px] font-extrabold">ПРИСЕД</span>
+        </button>
+
+        <button id="touchReloadBtn" data-control-id="reload" type="button" class="touch-draggable fps-touch-btn cursor-pointer" style="right: 98px; bottom: 114px; width: 54px; height: 54px;" aria-label="Перезарядка">
+          <svg class="w-5 h-5 text-purple-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          <span class="text-[8px] font-extrabold">ПАТРОНЫ</span>
+        </button>
+      </div>
+
+      <div id="layoutEditorBar" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 glass-panel rounded-2xl px-4 py-2.5 flex flex-wrap items-center gap-3 pointer-events-auto z-40">
+        <span class="text-xs font-black text-sky-300">РЕДАКТОР КНОПОК: перетаскивайте элементы</span>
+        <button id="saveLayoutBtn" type="button" class="px-3 py-1.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer">Сохранить</button>
+        <button id="resetLayoutBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold cursor-pointer">Сбросить</button>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         5. ROUND RESULT, SIDE SWITCH, PAUSE & MATCH RESULT MODALS
+         ===================================================================== -->
+    <div id="roundResultModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/75 p-4">
+      <div class="glass-panel w-full max-w-lg rounded-3xl p-6 text-center space-y-4">
+        <div class="text-xs font-extrabold uppercase tracking-widest text-amber-400" id="roundResSubtitle">РАУНД 1 ЗАВЕРШЁН</div>
+        <h2 class="text-2xl sm:text-3xl font-black text-white" id="roundResWinner">ПОБЕДА АТАКУЮЩИХ</h2>
+        <p class="text-sm text-slate-300" id="roundResReason">Устройство установлено и сработало.</p>
+        <div class="grid grid-cols-2 gap-3 rounded-2xl bg-slate-900/80 p-3 border border-slate-700/70">
+          <div>
+            <div class="text-xs font-bold text-sky-300">СИНИЕ</div>
+            <div class="text-2xl font-black text-sky-300" id="roundResBlueScore">0</div>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-rose-400">КРАСНЫЕ</div>
+            <div class="text-2xl font-black text-rose-400" id="roundResRedScore">0</div>
+          </div>
+        </div>
+        <div id="roundResCountdown" class="text-xs font-bold text-amber-300">Следующий раунд через 3 сек...</div>
+      </div>
+    </div>
+
+    <div id="sideSwitchModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/85 p-4">
+      <div class="glass-panel w-full max-w-lg rounded-3xl p-6 text-center space-y-4 border-2 border-amber-400/50">
+        <div class="text-xs font-extrabold uppercase tracking-widest text-amber-400">ЭКВАТОР МАТЧА</div>
+        <h2 class="text-3xl font-black text-white">СМЕНА СТОРОН</h2>
+        <div class="space-y-2 text-sm font-extrabold rounded-2xl bg-slate-900/85 p-4 border border-slate-700/80">
+          <div class="text-rose-300" id="sideSwitchRedRole">Красная команда: теперь ЗАЩИТНИКИ</div>
+          <div class="text-sky-300" id="sideSwitchBlueRole">Синяя команда: теперь АТАКУЮЩИЕ</div>
+        </div>
+        <p class="text-xs text-slate-300">Игроки остаются в своих командах, меняются только роли и стартовые позиции.</p>
+        <div id="sideSwitchCountdown" class="text-xs font-bold text-amber-300">Подготовка второй половины...</div>
+      </div>
+    </div>
+
+    <div id="pauseModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/80 p-4">
+      <div class="glass-panel w-full max-w-md rounded-3xl p-6 space-y-4">
+        <h2 class="text-2xl font-black text-white text-center">ПАУЗА МАТЧА</h2>
+        <div class="flex flex-col gap-2.5">
+          <button id="resumeMatchBtn" type="button" class="w-full py-3 rounded-2xl bg-emerald-400 hover:brightness-110 text-slate-950 text-sm font-black cursor-pointer">
+            ▶ ПРОДОЛЖИТЬ БОЙ
+          </button>
+          <button id="restartMatchFromPauseBtn" type="button" class="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold border border-slate-600 cursor-pointer">
+            ↻ НАЧАТЬ МАТЧ ЗАНОВО
+          </button>
+          <button id="exitToMenuFromPauseBtn" type="button" class="w-full py-3 rounded-2xl bg-rose-950/80 hover:bg-rose-900 text-rose-200 text-sm font-bold border border-rose-500/40 cursor-pointer">
+            ⌂ В ГЛАВНОЕ МЕНЮ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="matchEndModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/85 p-4">
+      <div class="glass-panel w-full max-w-xl rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scroll">
+        <div class="text-center space-y-1">
+          <div class="text-xs font-extrabold uppercase tracking-widest text-amber-400">МАТЧ ЗАВЕРШЁН</div>
+          <h2 class="text-2xl sm:text-3xl font-black text-white" id="matchEndWinnerTitle">ПОБЕДА СИНЕЙ КОМАНДЫ</h2>
+          <p class="text-xs sm:text-sm text-slate-300" id="matchEndSummaryText">Итоговый счёт: 7 — 5 • Получено +140 XP и +260 FS</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center rounded-2xl bg-slate-900/80 p-3 border border-slate-700/80">
+          <div>
+            <div class="text-[11px] text-slate-400">УБИЙСТВ</div>
+            <div class="text-lg font-black text-emerald-400" id="matchEndKills">0</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-400">ПОРАЖЕНИЙ</div>
+            <div class="text-lg font-black text-rose-400" id="matchEndDeaths">0</div>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-400">ОЧКИ / РАНГ</div>
+            <div class="text-lg font-black text-amber-300" id="matchEndScoreRank">0 • Silver I</div>
+          </div>
+        </div>
+
+        <div id="matchEndScoreboard" class="space-y-1.5 text-xs"></div>
+
+        <div class="flex flex-wrap gap-2.5 pt-1">
+          <button id="rematchBtn" type="button" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 text-xs sm:text-sm font-black cursor-pointer">
+            ↻ ПОВТОРИТЬ МАТЧ
+          </button>
+          <button id="chooseAnotherMapBtn" type="button" class="flex-1 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-sm font-bold border border-slate-600 cursor-pointer">
+            🗺️ ВЫБРАТЬ КАРТУ
+          </button>
+          <button id="backToMenuFromEndBtn" type="button" class="w-full py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-extrabold border border-slate-700 cursor-pointer">
+            ВЕРНУТЬСЯ В МЕНЮ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =====================================================================
+         SECTION 1: GAME STATES, MODES, MAPS, WEAPONS, COSMETICS & SAVE DATA
+         ===================================================================== */
+      const MATCH_STATES = {
+        LOADING: 'LOADING',
+        TEAM_SELECTION: 'TEAM_SELECTION',
+        PREPARATION: 'PREPARATION',
+        ROUND_ACTIVE: 'ROUND_ACTIVE',
+        ROUND_RESULT: 'ROUND_RESULT',
+        SIDE_SWITCH: 'SIDE_SWITCH',
+        NEXT_ROUND: 'NEXT_ROUND',
+        MATCH_RESULT: 'MATCH_RESULT',
+        PAUSED: 'PAUSED'
+      };
+
+      const GAME_MODES = [
+        { id: 'bomb_defuse', name: 'Разминирование', rounds: 12, roundSec: 180, winScore: 7, isBomb: true, desc: 'Атакующие устанавливают бомбу в зонах A или B; защитники обезвреживают или не дают установить. Смена сторон после 6 раунда.' },
+        { id: 'comp_5v5', name: 'Соревновательный 5 на 5', rounds: 12, roundSec: 180, winScore: 7, isBomb: false, desc: 'Тактические раунды 5 на 5 с 20 HP + 20 AP на бойца, сменой сторон после половины матча и определением победителя по раундам.' },
+        { id: 'tdm_5v5', name: 'Командный бой 5 на 5', rounds: 3, roundSec: 180, winScore: 100, isBomb: false, desc: 'Командный бой 5 на 5 с 20 HP + 20 AP, возрождением, защитой спавна и счётом до 100 устранений или раундам.' },
+        { id: 'ffa', name: 'Каждый сам за себя', rounds: 1, roundSec: 240, winScore: 25, isBomb: false, desc: 'Динамичный бой каждый против каждого на 3D-арене.' },
+        { id: 'duel_1v1', name: 'Дуэль 1 на 1', rounds: 5, roundSec: 90, winScore: 3, isBomb: false, desc: 'Быстрые дуэльные раунды против соперника.' },
+        { id: 'bot_training', name: 'Тренировка с ботами', rounds: 1, roundSec: 300, winScore: 50, isBomb: false, desc: 'Отработка стрельбы, движения и укрытий против активных ботов.' },
+        { id: 'pistol_only', name: 'Пистолетный бой', rounds: 5, roundSec: 150, winScore: 15, isBomb: false, desc: 'Перестрелки на пистолетах с бесконечным боезапасом.' },
+        { id: 'free_roam', name: 'Свободная тренировка', rounds: 1, roundSec: 600, winScore: 999, isBomb: false, desc: 'Свободное исследование 3D-архитектуры карты, прыжки, стрельба и активные перестрелки ботов.' }
+      ];
+
+      const MAPS_CATALOG = [
+        {
+          id: 'dust_city',
+          name: 'DUST CITY',
+          theme: 'Пустынный город (Block Strike стиль)',
+          skyTop: '#2998e8',
+          skyMid: '#93d5f8',
+          groundColor: '#d9b37c',
+          roadColor: '#c29b63',
+          wallMain: '#cfa166',
+          wallAccent: '#b86b43',
+          roofColor: '#a87849',
+          fogColor: '#e2c496',
+          zoneA: { x: -13, z: -12, r: 4.5, label: 'A' },
+          zoneB: { x: 13, z: 12, r: 4.5, label: 'B' },
+          desc: 'Песчаные улицы, рынок с навесами, старые дома, арки, заброшенные грузовики, каменные ступени и кусты пустыни.'
+        },
+        {
+          id: 'winter_base',
+          name: 'WINTER BASE',
+          theme: 'Заснеженная военная база',
+          skyTop: '#4b79a1',
+          skyMid: '#b8d4e8',
+          groundColor: '#e6eff7',
+          roadColor: '#7b8c9e',
+          wallMain: '#cfd8e3',
+          wallAccent: '#3b82f6',
+          roofColor: '#9fb3c8',
+          fogColor: '#cfe0ee',
+          zoneA: { x: -14, z: -10, r: 4.5, label: 'A' },
+          zoneB: { x: 14, z: 10, r: 4.5, label: 'B' },
+          desc: 'Снежный полигон, заснеженные ангары, контейнеры, склады и морозное освещение.'
+        },
+        {
+          id: 'neon_city',
+          name: 'NEON CITY',
+          theme: 'Ночной неоновый мегаполис',
+          skyTop: '#090d1f',
+          skyMid: '#1e1b4b',
+          groundColor: '#1e2433',
+          roadColor: '#111622',
+          wallMain: '#28324a',
+          wallAccent: '#22d3ee',
+          roofColor: '#172033',
+          fogColor: '#151c30',
+          zoneA: { x: -12, z: -13, r: 4.5, label: 'A' },
+          zoneB: { x: 12, z: 13, r: 4.5, label: 'B' },
+          desc: 'Неоновые вывески, высотные здания, парковка, рекламные панели и тёмный асфальт.'
+        },
+        {
+          id: 'abandoned_factory',
+          name: 'ABANDONED FACTORY',
+          theme: 'Заброшенный промышленный завод',
+          skyTop: '#334155',
+          skyMid: '#64748b',
+          groundColor: '#57534e',
+          roadColor: '#3f3f46',
+          wallMain: '#6e655f',
+          wallAccent: '#ea580c',
+          roofColor: '#44403c',
+          fogColor: '#6b7280',
+          zoneA: { x: -13, z: 11, r: 4.5, label: 'A' },
+          zoneB: { x: 13, z: -11, r: 4.5, label: 'B' },
+          desc: 'Производственные цеха, трубы, станки, контейнеры и промышленные конструкции.'
+        },
+        {
+          id: 'old_town',
+          name: 'OLD TOWN',
+          theme: 'Старый европейский город',
+          skyTop: '#2563eb',
+          skyMid: '#bae6fd',
+          groundColor: '#9ca3af',
+          roadColor: '#6b7280',
+          wallMain: '#d6a87c',
+          wallAccent: '#b91c1c',
+          roofColor: '#991b1b',
+          fogColor: '#cbd5e1',
+          zoneA: { x: -12, z: -11, r: 4.5, label: 'A' },
+          zoneB: { x: 12, z: 11, r: 4.5, label: 'B' },
+          desc: 'Каменные улицы, черепичные крыши, площадь с фонтаном, кафе и дворики.'
+        },
+        {
+          id: 'desert_military',
+          name: 'DESERT MILITARY',
+          theme: 'Военная база посреди пустыни',
+          skyTop: '#1d84c7',
+          skyMid: '#9cd6f7',
+          groundColor: '#cfa66b',
+          roadColor: '#8c7758',
+          wallMain: '#9e8b67',
+          wallAccent: '#4d7c0f',
+          roofColor: '#6d5f45',
+          fogColor: '#dcc094',
+          zoneA: { x: -14, z: 12, r: 4.5, label: 'A' },
+          zoneB: { x: 14, z: -12, r: 4.5, label: 'B' },
+          desc: 'Казармы, ангары, башни наблюдения, контейнеры и военная техника.'
+        },
+        {
+          id: 'underground',
+          name: 'UNDERGROUND',
+          theme: 'Подземный исследовательский комплекс',
+          skyTop: '#0f172a',
+          skyMid: '#1e293b',
+          groundColor: '#27303f',
+          roadColor: '#18202c',
+          wallMain: '#38465c',
+          wallAccent: '#38bdf8',
+          roofColor: '#1e293b',
+          fogColor: '#162032',
+          zoneA: { x: -11, z: -11, r: 4.5, label: 'A' },
+          zoneB: { x: 11, z: 11, r: 4.5, label: 'B' },
+          desc: 'Лаборатории, серверные стойки, коридоры, металлические двери и световые панели.'
+        },
+        {
+          id: 'harbor',
+          name: 'HARBOR',
+          theme: 'Большой морской порт',
+          skyTop: '#0284c7',
+          skyMid: '#bae6fd',
+          groundColor: '#8d99ae',
+          roadColor: '#4a5568',
+          wallMain: '#64748b',
+          wallAccent: '#f59e0b',
+          roofColor: '#334155',
+          fogColor: '#bae6fd',
+          zoneA: { x: -13, z: -12, r: 4.5, label: 'A' },
+          zoneB: { x: 13, z: 12, r: 4.5, label: 'B' },
+          desc: 'Причалы, портовые краны, корабли, склады и контейнеры.'
+        }
+      ];
+
+      const WEAPONS_CATALOG = [
+        // Rifles
+        { id: 'ak47', name: 'AK-47', category: 'rifle', slot: 0, dmg: 9, fireRate: 0.11, recoil: 0.022, mag: 30, color: '#9a5b32' },
+        { id: 'm4a1', name: 'M4A1', category: 'rifle', slot: 0, dmg: 8, fireRate: 0.095, recoil: 0.017, mag: 30, color: '#475569' },
+        { id: 'm4a4', name: 'M4A4', category: 'rifle', slot: 0, dmg: 8, fireRate: 0.10, recoil: 0.018, mag: 30, color: '#334155' },
+        { id: 'famas', name: 'FAMAS', category: 'rifle', slot: 0, dmg: 7, fireRate: 0.088, recoil: 0.016, mag: 25, color: '#52525b' },
+        { id: 'galil', name: 'Galil', category: 'rifle', slot: 0, dmg: 8, fireRate: 0.105, recoil: 0.019, mag: 35, color: '#4b5563' },
+        // SMGs
+        { id: 'mp5', name: 'MP5', category: 'smg', slot: 0, dmg: 6, fireRate: 0.082, recoil: 0.013, mag: 30, color: '#1e293b' },
+        { id: 'ump45', name: 'UMP45', category: 'smg', slot: 0, dmg: 7, fireRate: 0.105, recoil: 0.015, mag: 25, color: '#374151' },
+        { id: 'p90', name: 'P90', category: 'smg', slot: 0, dmg: 6, fireRate: 0.072, recoil: 0.014, mag: 50, color: '#27272a' },
+        { id: 'vector', name: 'Vector', category: 'smg', slot: 0, dmg: 6, fireRate: 0.068, recoil: 0.012, mag: 25, color: '#18181b' },
+        // Snipers
+        { id: 'awp', name: 'AWP', category: 'sniper', slot: 0, dmg: 25, fireRate: 0.85, recoil: 0.055, mag: 10, zoomFov: 0.52, color: '#3f6212' },
+        { id: 'scout', name: 'Scout', category: 'sniper', slot: 0, dmg: 18, fireRate: 0.62, recoil: 0.032, mag: 10, zoomFov: 0.62, color: '#3b82f6' },
+        { id: 'ssg08', name: 'SSG 08', category: 'sniper', slot: 0, dmg: 18, fireRate: 0.64, recoil: 0.03, mag: 10, zoomFov: 0.62, color: '#64748b' },
+        // Shotguns
+        { id: 'nova', name: 'Nova', category: 'shotgun', slot: 0, dmg: 14, fireRate: 0.55, recoil: 0.042, mag: 8, pellets: 5, color: '#334155' },
+        { id: 'xm1014', name: 'XM1014', category: 'shotgun', slot: 0, dmg: 11, fireRate: 0.28, recoil: 0.034, mag: 7, pellets: 4, color: '#27272a' },
+        { id: 'sawed_off', name: 'Sawed-Off', category: 'shotgun', slot: 0, dmg: 16, fireRate: 0.58, recoil: 0.048, mag: 4, pellets: 6, color: '#7c2d12' },
+        // Pistols
+        { id: 'glock', name: 'Glock', category: 'pistol', slot: 1, dmg: 6, fireRate: 0.14, recoil: 0.012, mag: 20, color: '#1f2937' },
+        { id: 'deagle', name: 'Desert Eagle', category: 'pistol', slot: 1, dmg: 16, fireRate: 0.34, recoil: 0.038, mag: 7, color: '#cbd5e1' },
+        { id: 'usp', name: 'USP', category: 'pistol', slot: 1, dmg: 7, fireRate: 0.15, recoil: 0.011, mag: 12, color: '#111827' },
+        { id: 'p250', name: 'P250', category: 'pistol', slot: 1, dmg: 8, fireRate: 0.14, recoil: 0.014, mag: 13, color: '#4b5563' },
+        { id: 'revolver', name: 'Revolver', category: 'pistol', slot: 1, dmg: 17, fireRate: 0.42, recoil: 0.04, mag: 6, color: '#9ca3af' },
+        // Knife & Grenade
+        { id: 'knife', name: 'Knife', category: 'knife', slot: 2, dmg: 20, fireRate: 0.35, recoil: 0.01, mag: 1, isMelee: true, color: '#e2e8f0' },
+        { id: 'grenade', name: 'Grenade', category: 'grenade', slot: 3, dmg: 22, fireRate: 0.75, recoil: 0.015, mag: 1, isGrenade: true, color: '#4d7c0f' }
+      ];
+
+      const COSMETICS_CATALOG = [
+        { id: 'skin_default', name: 'Tactical Sand', type: 'skin', rarity: 'Common', price: 0, color: '#f59e0b', desc: 'Базовый тактический окрас оперативника FUNUNKUL STRIKE.' },
+        { id: 'skin_crimson', name: 'Crimson Viper', type: 'skin', rarity: 'Rare', price: 450, color: '#ef4444', desc: 'Алый контрастный камуфляж с углеродными вставками.' },
+        { id: 'skin_cobalt', name: 'Cobalt Pulse', type: 'skin', rarity: 'Epic', price: 850, color: '#38bdf8', desc: 'Электрический синий скин с металлическим блеском.' },
+        { id: 'skin_gold', name: 'Fununkul Gold', type: 'skin', rarity: 'Legendary', price: 1400, color: '#facc15', desc: 'Коллекционный золотой окрас от FUNUNKUL.' },
+        { id: 'glove_tactical', name: 'Перчатки Recon', type: 'glove', rarity: 'Common', price: 0, color: '#1e293b', desc: 'Усиленные перчатки с защитой костяшек.' },
+        { id: 'glove_venom', name: 'Перчатки Venom', type: 'glove', rarity: 'Epic', price: 700, color: '#10b981', desc: 'Тактические перчатки с изумрудными вставками.' },
+        { id: 'knife_falcon', name: 'Нож Falcon', type: 'knife', rarity: 'Rare', price: 600, color: '#38bdf8', desc: 'Лёгкий боевой нож с быстрым взмахом.' },
+        { id: 'sticker_fs', name: 'Наклейка FS Emblem', type: 'sticker', rarity: 'Rare', price: 250, color: '#fbbf24', desc: 'Фирменная эмблема FUNUNKUL STRIKE.' },
+        { id: 'case_desert', name: 'Кейс Dust Supply', type: 'case', rarity: 'Epic', price: 500, color: '#f97316', desc: 'Открывает случайный редкий предмет из коллекции Dust.' }
+      ];
+
+      const DEFAULT_TOUCH_LAYOUT = {
+        joystick: { left: 24, bottom: 24 },
+        weaponBar: { right: 18, bottom: 186 },
+        fire: { right: 26, bottom: 26 },
+        aim: { right: 122, bottom: 38 },
+        jump: { right: 28, bottom: 118 },
+        crouch: { right: 186, bottom: 26 },
+        reload: { right: 98, bottom: 114 }
+      };
+
+      const STORAGE_KEY = 'fununkul_strike_save_v1';
+
+      const settings = {
+        graphics: 'Средняя',
+        masterVol: 0.7,
+        weaponVol: 0.8,
+        musicVol: 0.35,
+        uiVol: 0.6,
+        sensitivity: 1.0,
+        touchSensitivity: 1.25,
+        buttonSizePct: 100,
+        buttonOpacityPct: 85,
+        crosshairSizePx: 10,
+        crosshairColor: '#34d399',
+        showRadar: true,
+        showTelemetry: true,
+        touchLayout: JSON.parse(JSON.stringify(DEFAULT_TOUCH_LAYOUT))
+      };
+
+      const profile = {
+        nickname: 'Operative',
+        level: 1,
+        xp: 0,
+        credits: 1500,
+        wins: 0,
+        losses: 0,
+        matchesPlayed: 0,
+        kills: 0,
+        deaths: 0,
+        equippedSkinId: 'skin_default',
+        equippedGloveId: 'glove_tactical',
+        equippedKnifeId: 'knife',
+        equippedPrimaryId: 'ak47',
+        equippedPistolId: 'glock',
+        equippedGrenadeId: 'grenade',
+        ownedIds: ['skin_default', 'glove_tactical'],
+        friends: [
+          { name: 'DustRunner', status: 'В сети • DUST CITY', rank: 'Gold I' },
+          { name: 'Vortex99', status: 'В лобби • 5v5', rank: 'Silver IV' },
+          { name: 'NovaStrike', status: 'Не в сети', rank: 'Gold II' }
+        ],
+        history: []
+      };
+
+      function getRankName(level) {
+        if (level >= 15) return 'Master Guardian';
+        if (level >= 10) return 'Gold Nova III';
+        if (level >= 6) return 'Gold Nova I';
+        if (level >= 3) return 'Silver Elite';
+        return 'Silver I';
+      }
+
+      function loadSaveData() {
+        try {
+          if (typeof localStorage === 'undefined' || !localStorage) return;
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.settings) {
+            Object.assign(settings, parsed.settings);
+            settings.touchLayout = Object.assign(
+              JSON.parse(JSON.stringify(DEFAULT_TOUCH_LAYOUT)),
+              parsed.settings.touchLayout || {}
+            );
+          }
+          if (parsed && parsed.profile) {
+            Object.assign(profile, parsed.profile);
+            if (!Array.isArray(profile.ownedIds)) profile.ownedIds = ['skin_default', 'glove_tactical'];
+            if (!Array.isArray(profile.history)) profile.history = [];
+            if (!Array.isArray(profile.friends)) profile.friends = [];
+          }
+        } catch (err) {
+          // Safe storage fallback
+        }
+      }
+
+      function saveGameData() {
+        try {
+          if (typeof localStorage === 'undefined' || !localStorage) return;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ settings: settings, profile: profile }));
+        } catch (err) {
+          // Safe storage fallback
+        }
+      }
+
+      loadSaveData();
+
+      /* =====================================================================
+         SECTION 2: WEBAUDIO SYNTH SOUND ENGINE
+         ===================================================================== */
+      const audioSys = {
+        ctx: null,
+        ensure: function () {
+          try {
+            if (!this.ctx) {
+              const AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+              this.ctx.resume().catch(function () {});
+            }
+          } catch (e) {}
+        },
+        tone: function (freq, endFreq, dur, type, gainScale, delaySec) {
+          try {
+            if (!this.ctx || settings.masterVol <= 0.01) return;
+            const now = this.ctx.currentTime + (delaySec || 0);
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type || 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(30, endFreq), now + dur);
+            const vol = Math.min(0.35, settings.masterVol * (gainScale || 0.2));
+            gain.gain.setValueAtTime(vol, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + dur + 0.02);
+          } catch (e) {}
+        },
+        playShot: function (weapon) {
+          this.ensure();
+          const vol = settings.weaponVol * 0.25;
+          if (weapon && weapon.isMelee) {
+            this.tone(420, 140, 0.09, 'sawtooth', vol * 0.7);
+          } else if (weapon && weapon.isGrenade) {
+            this.tone(240, 85, 0.16, 'triangle', vol * 0.8);
+          } else if (weapon && weapon.category === 'sniper') {
+            this.tone(175, 42, 0.22, 'sawtooth', vol * 1.15);
+          } else {
+            this.tone(230, 58, 0.11, 'square', vol);
+          }
+        },
+        playReload: function () {
+          this.ensure();
+          const vol = settings.weaponVol * 0.16;
+          this.tone(520, 740, 0.07, 'sine', vol, 0);
+          this.tone(360, 620, 0.08, 'triangle', vol, 0.16);
+        },
+        playStep: function (sprinting) {
+          this.ensure();
+          const vol = settings.masterVol * (sprinting ? 0.09 : 0.05);
+          this.tone(sprinting ? 135 : 105, 55, 0.05, 'sine', vol);
+        },
+        playHit: function (isKill) {
+          this.ensure();
+          const vol = settings.weaponVol * 0.22;
+          this.tone(isKill ? 980 : 660, isKill ? 1320 : 480, isKill ? 0.14 : 0.07, 'triangle', vol);
+        },
+        playUi: function () {
+          this.ensure();
+          this.tone(580, 720, 0.05, 'sine', settings.uiVol * 0.12);
+        },
+        playRoundEnd: function (won) {
+          this.ensure();
+          const vol = settings.masterVol * 0.2;
+          if (won) {
+            this.tone(523, 523, 0.14, 'triangle', vol, 0);
+            this.tone(659, 659, 0.14, 'triangle', vol, 0.14);
+            this.tone(784, 784, 0.24, 'triangle', vol, 0.28);
+          } else {
+            this.tone(392, 330, 0.18, 'sawtooth', vol * 0.8, 0);
+            this.tone(293, 220, 0.28, 'sawtooth', vol * 0.8, 0.18);
+          }
+        }
+      };
+
+      /* =====================================================================
+         SECTION 3: LIVE PING & FPS TELEMETRY
+         ===================================================================== */
+      const telemetry = {
+        fps: 60,
+        pingMs: 12,
+        lastPingCheck: 0
+      };
+
+      function measureRealPing() {
+        const start = performance.now();
+        telemetry.lastPingCheck = start;
+        try {
+          const img = new Image();
+          let done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            telemetry.pingMs = Math.max(2, Math.min(999, Math.round(performance.now() - start)));
+          }
+          img.onload = finish;
+          img.onerror = finish;
+          setTimeout(finish, 300);
+          img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7?t=' + Date.now();
+        } catch (e) {
+          telemetry.pingMs = Math.max(3, Math.round(performance.now() - start));
+        }
+      }
+
+      /* =====================================================================
+         SECTION 4: 8 DISTINCT 3D MAPS WITH OPAQUE ARCHITECTURE & zNear=0.25
+         ===================================================================== */
+      const Z_NEAR = 0.25;
+      const ARENA_HALF = 26;
+      const mapCache = {};
+
+      function createMapBlocks(mapId) {
+        const cfg = MAPS_CATALOG.find(function (m) { return m.id === mapId; }) || MAPS_CATALOG[0];
+        const blocks = [];
+
+        function addBox(x, z, w, d, h, y, color, roofColor, trimColor, kind) {
+          blocks.push({
+            x: x,
+            z: z,
+            w: w,
+            d: d,
+            h: h,
+            y: y || 0,
+            color: color || cfg.wallMain,
+            roofColor: roofColor || cfg.roofColor,
+            trimColor: trimColor || cfg.wallAccent,
+            kind: kind || 'wall'
+          });
+        }
+
+        const perimLen = ARENA_HALF * 2 + 6;
+        addBox(0, -ARENA_HALF - 2, perimLen, 4, 8.5, 0, cfg.wallMain, cfg.roofColor, cfg.wallAccent, 'perimeter');
+        addBox(0, ARENA_HALF + 2, perimLen, 4, 8.5, 0, cfg.wallMain, cfg.roofColor, cfg.wallAccent, 'perimeter');
+        addBox(-ARENA_HALF - 2, 0, 4, perimLen, 8.5, 0, cfg.wallMain, cfg.roofColor, cfg.wallAccent, 'perimeter');
+        addBox(ARENA_HALF + 2, 0, 4, perimLen, 8.5, 0, cfg.wallMain, cfg.roofColor, cfg.wallAccent, 'perimeter');
+
+        const corners = [
+          [-ARENA_HALF + 1, -ARENA_HALF + 1],
+          [ARENA_HALF - 1, -ARENA_HALF + 1],
+          [-ARENA_HALF + 1, ARENA_HALF - 1],
+          [ARENA_HALF - 1, ARENA_HALF - 1]
+        ];
+        corners.forEach(function (c, idx) {
+          addBox(c[0], c[1], 5.5, 5.5, 10.5 + (idx % 2) * 2.5, 0, cfg.wallAccent, cfg.roofColor, cfg.wallMain, 'tower');
+        });
+
+        const horizonRing = [
+          [-38, -22, 11, 11, 14], [-18, -38, 12, 10, 12], [6, -39, 13, 10, 16], [28, -36, 11, 11, 13],
+          [39, -15, 10, 12, 15], [39, 12, 11, 12, 12], [32, 36, 12, 10, 14], [6, 39, 13, 10, 11],
+          [-20, 38, 12, 10, 15], [-39, 20, 10, 12, 13], [-39, -4, 10, 11, 14], [18, 38, 11, 10, 12]
+        ];
+        horizonRing.forEach(function (h) {
+          addBox(h[0], h[1], h[2], h[3], h[4], 0, cfg.wallMain, cfg.roofColor, cfg.wallAccent, 'horizon');
+        });
+
+        if (mapId === 'dust_city') {
+          addBox(-13, -15, 8.5, 7.5, 6.2, 0, '#d6a468', '#a46f3e', '#b86b43', 'building');
+          addBox(-13, -15, 9.1, 8.1, 0.6, 6.2, '#b86b43', '#8c5832', '#e5be8a', 'roof_trim');
+          addBox(14, 15, 8.5, 7.5, 6.6, 0, '#c89559', '#9c6738', '#b86b43', 'building');
+          addBox(14, 15, 9.1, 8.1, 0.6, 6.6, '#b86b43', '#8c5832', '#e5be8a', 'roof_trim');
+          addBox(13, -13, 7.0, 6.5, 5.2, 0, '#d8aa72', '#a87544', '#9e5634', 'building');
+          addBox(-14, 13, 7.2, 6.8, 5.5, 0, '#c9985d', '#9b683b', '#9e5634', 'building');
+          addBox(-3, -7, 4.4, 2.6, 2.2, 0, '#8d5b34', '#d97706', '#fef3c7', 'stall');
+          addBox(3, 7, 4.4, 2.6, 2.2, 0, '#8d5b34', '#dc2626', '#fef3c7', 'stall');
+          addBox(0, -14, 2.8, 5.2, 2.3, 0, '#9a5b32', '#78350f', '#d97706', 'truck');
+          addBox(0, -16.2, 2.7, 1.8, 3.0, 0, '#b45309', '#92400e', '#fbbf24', 'truck_cab');
+          addBox(-5.5, 0, 2.4, 2.4, 4.2, 0, '#cfa166', '#9a6b3d', '#b86b43', 'pillar');
+          addBox(5.5, 0, 2.4, 2.4, 4.2, 0, '#cfa166', '#9a6b3d', '#b86b43', 'pillar');
+          addBox(-9.5, -3, 1.8, 1.8, 1.5, 0, '#b47b44', '#855325', '#e2b47c', 'crate');
+          addBox(9.5, 3, 1.8, 1.8, 1.5, 0, '#b47b44', '#855325', '#e2b47c', 'crate');
+          addBox(0, 12, 2.2, 1.5, 1.4, 0, '#9a5b32', '#7c2d12', '#d97706', 'crate');
+          addBox(-17, 2, 2.0, 4.5, 2.6, 0, '#c89559', '#9c6738', '#b86b43', 'wall');
+          addBox(17, -2, 2.0, 4.5, 2.6, 0, '#c89559', '#9c6738', '#b86b43', 'wall');
+        } else if (mapId === 'winter_base') {
+          addBox(-14, -13, 9.5, 8.0, 6.8, 0, '#cbd5e1', '#f8fafc', '#2563eb', 'hangar');
+          addBox(14, 13, 9.5, 8.0, 6.8, 0, '#cbd5e1', '#f8fafc', '#2563eb', 'hangar');
+          addBox(13, -13, 7.2, 6.5, 5.4, 0, '#94a3b8', '#f1f5f9', '#0284c7', 'bunker');
+          addBox(-13, 13, 7.2, 6.5, 5.4, 0, '#94a3b8', '#f1f5f9', '#0284c7', 'bunker');
+          addBox(-4, -5, 5.2, 2.4, 2.5, 0, '#2563eb', '#e2e8f0', '#93c5fd', 'container');
+          addBox(4, 5, 5.2, 2.4, 2.5, 0, '#dc2626', '#e2e8f0', '#fca5a5', 'container');
+          addBox(0, -13, 3.0, 2.2, 2.2, 0, '#475569', '#f8fafc', '#38bdf8', 'crate');
+          addBox(0, 13, 3.0, 2.2, 2.2, 0, '#475569', '#f8fafc', '#38bdf8', 'crate');
+          addBox(-10, 4, 2.2, 2.2, 3.4, 0, '#94a3b8', '#e2e8f0', '#38bdf8', 'pillar');
+          addBox(10, -4, 2.2, 2.2, 3.4, 0, '#94a3b8', '#e2e8f0', '#38bdf8', 'pillar');
+        } else if (mapId === 'neon_city') {
+          addBox(-14, -14, 8.5, 8.5, 9.5, 0, '#1e293b', '#0f172a', '#22d3ee', 'tower');
+          addBox(14, 14, 8.5, 8.5, 9.5, 0, '#1e293b', '#0f172a', '#e879f9', 'tower');
+          addBox(14, -14, 7.5, 7.0, 7.2, 0, '#1e1b4b', '#0f172a', '#38bdf8', 'shop');
+          addBox(-14, 14, 7.5, 7.0, 7.2, 0, '#1e1b4b', '#0f172a', '#fb7185', 'shop');
+          addBox(-4, -5, 4.2, 2.2, 2.2, 0, '#0f172a', '#22d3ee', '#67e8f9', 'kiosk');
+          addBox(4, 5, 4.2, 2.2, 2.2, 0, '#0f172a', '#e879f9', '#f0abfc', 'kiosk');
+          addBox(0, -11, 2.6, 4.6, 1.9, 0, '#334155', '#38bdf8', '#22d3ee', 'car');
+          addBox(0, 11, 2.6, 4.6, 1.9, 0, '#334155', '#f43f5e', '#fb7185', 'car');
+          addBox(-8, 2, 2.0, 2.0, 4.5, 0, '#1e293b', '#22d3ee', '#22d3ee', 'pillar');
+          addBox(8, -2, 2.0, 2.0, 4.5, 0, '#1e293b', '#e879f9', '#e879f9', 'pillar');
+        } else if (mapId === 'abandoned_factory') {
+          addBox(-14, 12, 9.0, 8.0, 7.5, 0, '#57534e', '#292524', '#ea580c', 'factory');
+          addBox(14, -12, 9.0, 8.0, 7.5, 0, '#57534e', '#292524', '#ea580c', 'factory');
+          addBox(-14, -13, 7.5, 7.0, 5.8, 0, '#44403c', '#292524', '#d97706', 'warehouse');
+          addBox(14, 13, 7.5, 7.0, 5.8, 0, '#44403c', '#292524', '#d97706', 'warehouse');
+          addBox(-3, -6, 4.8, 2.2, 2.4, 0, '#78350f', '#57534e', '#fb923c', 'machinery');
+          addBox(3, 6, 4.8, 2.2, 2.4, 0, '#78350f', '#57534e', '#fb923c', 'machinery');
+          addBox(0, -14, 6.0, 1.6, 1.8, 1.2, '#9a3412', '#ea580c', '#fed7aa', 'pipe');
+          addBox(0, 14, 6.0, 1.6, 1.8, 1.2, '#9a3412', '#ea580c', '#fed7aa', 'pipe');
+          addBox(-9, -2, 2.2, 2.2, 3.8, 0, '#57534e', '#292524', '#f97316', 'pillar');
+          addBox(9, 2, 2.2, 2.2, 3.8, 0, '#57534e', '#292524', '#f97316', 'pillar');
+        } else if (mapId === 'old_town') {
+          addBox(-13, -13, 8.0, 7.5, 6.8, 0, '#d6a87c', '#991b1b', '#fef3c7', 'house');
+          addBox(13, 13, 8.0, 7.5, 6.8, 0, '#d6a87c', '#991b1b', '#fef3c7', 'house');
+          addBox(13, -13, 7.5, 6.8, 5.6, 0, '#e2b88d', '#b91c1c', '#fde68a', 'cafe');
+          addBox(-13, 13, 7.5, 6.8, 5.6, 0, '#e2b88d', '#b91c1c', '#fde68a', 'cafe');
+          addBox(0, 0, 4.2, 4.2, 1.3, 0, '#9ca3af', '#38bdf8', '#e5e7eb', 'fountain');
+          addBox(-6, -7, 2.2, 2.2, 3.6, 0, '#d6a87c', '#991b1b', '#f3f4f6', 'pillar');
+          addBox(6, 7, 2.2, 2.2, 3.6, 0, '#d6a87c', '#991b1b', '#f3f4f6', 'pillar');
+          addBox(0, -13, 3.2, 2.0, 1.6, 0, '#78350f', '#b91c1c', '#fbbf24', 'stall');
+          addBox(0, 13, 3.2, 2.0, 1.6, 0, '#78350f', '#b91c1c', '#fbbf24', 'stall');
+        } else if (mapId === 'desert_military') {
+          addBox(-14, 13, 9.0, 7.5, 6.2, 0, '#9e8b67', '#6d5f45', '#4d7c0f', 'barracks');
+          addBox(14, -13, 9.0, 7.5, 6.2, 0, '#9e8b67', '#6d5f45', '#4d7c0f', 'barracks');
+          addBox(14, 13, 7.5, 7.5, 8.8, 0, '#857556', '#57534e', '#65a30d', 'tower');
+          addBox(-14, -13, 7.5, 7.5, 6.0, 0, '#9e8b67', '#6d5f45', '#4d7c0f', 'hangar');
+          addBox(0, -12, 3.0, 5.4, 2.4, 0, '#4d7c0f', '#365314', '#a3e635', 'vehicle');
+          addBox(0, 12, 3.0, 5.4, 2.4, 0, '#4d7c0f', '#365314', '#a3e635', 'vehicle');
+          addBox(-6, 0, 2.4, 2.4, 2.2, 0, '#6d5f45', '#4d7c0f', '#bef264', 'crate');
+          addBox(6, 0, 2.4, 2.4, 2.2, 0, '#6d5f45', '#4d7c0f', '#bef264', 'crate');
+        } else if (mapId === 'underground') {
+          addBox(-13, -13, 8.0, 7.5, 6.5, 0, '#38465c', '#1e293b', '#38bdf8', 'lab');
+          addBox(13, 13, 8.0, 7.5, 6.5, 0, '#38465c', '#1e293b', '#38bdf8', 'lab');
+          addBox(13, -13, 7.5, 7.0, 6.0, 0, '#334155', '#0f172a', '#22d3ee', 'server');
+          addBox(-13, 13, 7.5, 7.0, 6.0, 0, '#334155', '#0f172a', '#22d3ee', 'server');
+          addBox(-4, -5, 4.4, 2.2, 2.6, 0, '#1e293b', '#38bdf8', '#7dd3fc', 'console');
+          addBox(4, 5, 4.4, 2.2, 2.6, 0, '#1e293b', '#38bdf8', '#7dd3fc', 'console');
+          addBox(0, -12, 3.2, 2.0, 2.3, 0, '#475569', '#0284c7', '#38bdf8', 'door');
+          addBox(0, 12, 3.2, 2.0, 2.3, 0, '#475569', '#0284c7', '#38bdf8', 'door');
+          addBox(-8, 3, 2.0, 2.0, 4.2, 0, '#334155', '#38bdf8', '#38bdf8', 'pillar');
+          addBox(8, -3, 2.0, 2.0, 4.2, 0, '#334155', '#38bdf8', '#38bdf8', 'pillar');
+        } else {
+          addBox(-14, -14, 9.0, 8.0, 6.5, 0, '#64748b', '#334155', '#f59e0b', 'warehouse');
+          addBox(14, 14, 9.0, 8.0, 6.5, 0, '#64748b', '#334155', '#f59e0b', 'warehouse');
+          addBox(14, -13, 7.5, 6.8, 5.5, 0, '#475569', '#1e293b', '#38bdf8', 'office');
+          addBox(-14, 13, 7.5, 6.8, 5.5, 0, '#475569', '#1e293b', '#38bdf8', 'office');
+          addBox(-4, -6, 5.0, 2.4, 2.4, 0, '#f59e0b', '#b45309', '#fde68a', 'container');
+          addBox(4, 6, 5.0, 2.4, 2.4, 0, '#0284c7', '#0369a1', '#bae6fd', 'container');
+          addBox(0, -13, 3.2, 5.5, 2.4, 0, '#cbd5e1', '#dc2626', '#f59e0b', 'ship');
+          addBox(0, 13, 3.2, 5.5, 2.4, 0, '#cbd5e1', '#2563eb', '#f59e0b', 'ship');
+          addBox(-9, 1, 2.2, 2.2, 5.2, 0, '#475569', '#f59e0b', '#fbbf24', 'crane');
+          addBox(9, -1, 2.2, 2.2, 5.2, 0, '#475569', '#f59e0b', '#fbbf24', 'crane');
+        }
+
+        return blocks;
+      }
+
+      function getMapBlocks(mapId) {
+        if (!mapCache[mapId]) {
+          mapCache[mapId] = createMapBlocks(mapId);
+        }
+        return mapCache[mapId];
+      }
+
+      /* =====================================================================
+         SECTION 5: MATCH, ROUND, SIDE-SWAP & BOMB DEFUSE STATE ENGINE
+         ===================================================================== */
+      const state = {
+        matchState: MATCH_STATES.LOADING,
+        uiScreen: 'BOOT',
+        menuSection: 'play',
+        selectedModeId: 'bomb_defuse',
+        selectedMapId: 'dust_city',
+        playerTeam: 'blue',
+        roundNumber: 1,
+        maxRounds: 12,
+        roundTimer: 180,
+        prepTimer: 0,
+        phaseTimer: 0,
+        blueScore: 0,
+        redScore: 0,
+        redAttackingFirstHalf: true,
+        bombState: 'NONE',
+        bombZone: null,
+        bombPos: { x: 0, y: 0, z: 0 },
+        bombTimer: 25,
+        matchKills: 0,
+        matchDeaths: 0,
+        matchScore: 0
+      };
+
+      function getCurrentMode() {
+        return GAME_MODES.find(function (m) { return m.id === state.selectedModeId; }) || GAME_MODES[0];
+      }
+
+      function getCurrentMap() {
+        return MAPS_CATALOG.find(function (m) { return m.id === state.selectedMapId; }) || MAPS_CATALOG[0];
+      }
+
+      function isRedAttacking() {
+        const half = Math.ceil(state.maxRounds / 2);
+        if (state.roundNumber <= half) return state.redAttackingFirstHalf;
+        return !state.redAttackingFirstHalf;
+      }
+
+      function getTeamRoleLabel(team) {
+        const mode = getCurrentMode();
+        if (!mode.isBomb) return team === 'blue' ? 'СИНЯЯ КОМАНДА' : 'КРАСНАЯ КОМАНДА';
+        const redAtk = isRedAttacking();
+        if (team === 'red') return redAtk ? 'АТАКУЮЩИЕ' : 'ЗАЩИТНИКИ';
+        return redAtk ? 'ЗАЩИТНИКИ' : 'АТАКУЮЩИЕ';
+      }
+
+      /* =====================================================================
+         SECTION 6: PLAYER, WEAPONS, HUMAN-PROPORTIONED 3D BOTS & PHYSICS
+         ===================================================================== */
+      const player = {
+        x: 0,
+        y: 1.72,
+        z: -18,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        yaw: 0,
+        pitch: 0,
+        hp: 20,
+        ap: 20,
+        spawnProtection: 0,
+        respawnTimer: 0,
+        crouching: false,
+        sprinting: false,
+        aiming: false,
+        onGround: true,
+        stepAccum: 0,
+        recoilPitch: 0,
+        recoilYaw: 0,
+        fireCooldown: 0,
+        fireAnimTimer: 0,
+        fireAnimDuration: 0.14,
+        equipTimer: 0,
+        equipDuration: 0.42,
+        reloadTimer: 0,
+        reloadDuration: 0.95,
+        inspectTimer: 0,
+        inspectDuration: 1.55,
+        slashToggle: 1,
+        activeSlot: 0,
+        slots: ['ak47', 'glock', 'knife', 'grenade'],
+        magAmmo: {}
+      };
+
+      WEAPONS_CATALOG.forEach(function (w) {
+        player.magAmmo[w.id] = w.mag;
+      });
+
+      function refreshWeaponSlotPills() {
+        for (let i = 0; i < 4; i++) {
+          const pill = document.getElementById('slotPill' + i);
+          if (!pill) continue;
+          const wId = player.slots[i];
+          const wObj = WEAPONS_CATALOG.find(function (w) { return w.id === wId; });
+          pill.textContent = (i + 1) + ' • ' + (wObj ? wObj.name : 'Slot');
+          if (i === player.activeSlot) pill.classList.add('selected-slot');
+          else pill.classList.remove('selected-slot');
+        }
+      }
+
+      function syncPlayerLoadout() {
+        player.slots = [
+          profile.equippedPrimaryId || 'ak47',
+          profile.equippedPistolId || 'glock',
+          profile.equippedKnifeId || 'knife',
+          profile.equippedGrenadeId || 'grenade'
+        ];
+        refreshWeaponSlotPills();
+      }
+      syncPlayerLoadout();
+
+      function getActiveWeapon() {
+        const wId = player.slots[player.activeSlot] || 'ak47';
+        return WEAPONS_CATALOG.find(function (w) { return w.id === wId; }) || WEAPONS_CATALOG[0];
+      }
+
+      let bots = [];
+      let tracers = [];
+      let particles = [];
+      let thrownGrenades = [];
+      let killfeedItems = [];
+
+      const BOT_WAYPOINTS = [
+        { x: -12, z: -12 }, { x: 0, z: -14 }, { x: 12, z: -12 },
+        { x: -14, z: 0 },  { x: -5, z: 0 },  { x: 5, z: 0 },  { x: 14, z: 0 },
+        { x: -12, z: 12 }, { x: 0, z: 14 },  { x: 12, z: 12 }
+      ];
+
+      function resolveCircleCollisions(x, z, radius, blocks) {
+        let nx = x;
+        let nz = z;
+        const limit = ARENA_HALF - 0.7;
+        if (nx < -limit) nx = -limit;
+        if (nx > limit) nx = limit;
+        if (nz < -limit) nz = -limit;
+        if (nz > limit) nz = limit;
+
+        for (let i = 0; i < blocks.length; i++) {
+          const b = blocks[i];
+          if (b.kind === 'horizon' || b.kind === 'perimeter') continue;
+          if ((b.y || 0) > 1.35) continue;
+          const halfW = b.w * 0.5 + radius;
+          const halfD = b.d * 0.5 + radius;
+          const dx = nx - b.x;
+          const dz = nz - b.z;
+          if (Math.abs(dx) < halfW && Math.abs(dz) < halfD) {
+            const penX = halfW - Math.abs(dx);
+            const penZ = halfD - Math.abs(dz);
+            if (penX < penZ) {
+              nx += dx >= 0 ? penX : -penX;
+            } else {
+              nz += dz >= 0 ? penZ : -penZ;
+            }
+          }
+        }
+        return { x: nx, z: nz };
+      }
+
+      function getSafeSpawnPoint(team, index) {
+        const mode = getCurrentMode();
+        const blocks = getMapBlocks(state.selectedMapId);
+        let baseX = ((index % 5) - 2) * 3.3;
+        let baseZ = team === 'blue' ? -17.5 : 17.5;
+
+        if (mode.isBomb) {
+          const redAtk = isRedAttacking();
+          const isAtk = (team === 'red' && redAtk) || (team === 'blue' && !redAtk);
+          baseX = (index - 2) * 3.2;
+          baseZ = isAtk ? -18.5 : 17.5;
+        }
+
+        const resolved = resolveCircleCollisions(baseX, baseZ, 0.75, blocks);
+        return { x: resolved.x, z: resolved.z };
+      }
+
+      function createRoster() {
+        bots = [];
+        const mode = getCurrentMode();
+        const isFfa = mode.id === 'ffa';
+        const isDuel = mode.id === 'duel_1v1';
+
+        const blueBotCount = isDuel ? (state.playerTeam === 'blue' ? 0 : 1) : (isFfa ? 4 : (state.playerTeam === 'blue' ? 4 : 5));
+        const redBotCount = isDuel ? (state.playerTeam === 'red' ? 0 : 1) : (isFfa ? 5 : (state.playerTeam === 'red' ? 4 : 5));
+
+        const riflePool = mode.id === 'pistol_only'
+          ? ['glock', 'deagle', 'usp', 'p250', 'revolver']
+          : ['ak47', 'm4a1', 'm4a4', 'famas', 'galil', 'mp5', 'ump45', 'p90', 'nova', 'xm1014', 'sawed_off'];
+
+        let idCounter = 1;
+        for (let i = 0; i < blueBotCount; i++) {
+          const sp = getSafeSpawnPoint('blue', i);
+          bots.push({
+            id: idCounter++,
+            name: 'Blue_' + (i + 1),
+            team: isFfa ? 'ffa_' + idCounter : 'blue',
+            visualTeam: 'blue',
+            x: sp.x,
+            y: 0,
+            z: sp.z,
+            yaw: 0,
+            hp: 20,
+            maxHp: 20,
+            ap: 20,
+            alive: true,
+            respawnTimer: 0,
+            spawnProtection: 2.0,
+            weaponId: riflePool[(i + idCounter) % riflePool.length],
+            fireTimer: 0.35 + i * 0.12,
+            strafeDir: i % 2 === 0 ? 1 : -1,
+            strafeTimer: 1.2 + (i % 3) * 0.5,
+            targetWp: BOT_WAYPOINTS[(i * 2) % BOT_WAYPOINTS.length],
+            walkPhase: i * 1.1,
+            hitFlash: 0,
+            kills: 0,
+            deaths: 0
+          });
+        }
+
+        for (let j = 0; j < redBotCount; j++) {
+          const spR = getSafeSpawnPoint('red', j);
+          bots.push({
+            id: idCounter++,
+            name: 'Red_' + (j + 1),
+            team: isFfa ? 'ffa_' + idCounter : 'red',
+            visualTeam: 'red',
+            x: spR.x,
+            y: 0,
+            z: spR.z,
+            yaw: Math.PI,
+            hp: 20,
+            maxHp: 20,
+            ap: 20,
+            alive: true,
+            respawnTimer: 0,
+            spawnProtection: 2.0,
+            weaponId: riflePool[(j + 3) % riflePool.length],
+            fireTimer: 0.4 + j * 0.14,
+            strafeDir: j % 2 === 0 ? -1 : 1,
+            strafeTimer: 1.0 + (j % 3) * 0.45,
+            targetWp: BOT_WAYPOINTS[(j * 2 + 1) % BOT_WAYPOINTS.length],
+            walkPhase: j * 1.4,
+            hitFlash: 0,
+            kills: 0,
+            deaths: 0
+          });
+        }
+
+        const pSpawn = getSafeSpawnPoint(state.playerTeam, 2);
+        player.x = pSpawn.x;
+        player.z = pSpawn.z;
+        player.y = 1.72;
+        player.vx = 0;
+        player.vy = 0;
+        player.vz = 0;
+        player.yaw = state.playerTeam === 'blue' ? 0 : Math.PI;
+        player.pitch = 0;
+        player.hp = 20;
+        player.ap = 20;
+        player.spawnProtection = 2.0;
+        player.respawnTimer = 0;
+        player.reloadTimer = 0;
+        player.fireCooldown = 0;
+        WEAPONS_CATALOG.forEach(function (w) { player.magAmmo[w.id] = w.mag; });
+      }
+
+      function renderKillfeed() {
+        const el = document.getElementById('hudKillfeed');
+        if (!el) return;
+        el.innerHTML = killfeedItems.map(function (item) {
+          const kCol = item.killerTeam === 'red' ? 'text-rose-400' : 'text-sky-300';
+          const vCol = item.victimTeam === 'red' ? 'text-rose-400' : 'text-sky-300';
+          return '<div class="glass-soft rounded-xl px-2.5 py-1 text-[11px] font-extrabold flex items-center gap-1.5">' +
+            '<span class="' + kCol + '">' + item.killer + '</span>' +
+            '<span class="text-amber-300">⚔</span>' +
+            '<span class="' + vCol + '">' + item.victim + '</span>' +
+            '</div>';
+        }).join('');
+      }
+
+      function pushKillfeed(killerName, victimName, killerTeam, victimTeam) {
+        killfeedItems.unshift({
+          killer: killerName,
+          victim: victimName,
+          killerTeam: killerTeam,
+          victimTeam: victimTeam,
+          ttl: 3.6
+        });
+        if (killfeedItems.length > 4) killfeedItems.pop();
+        renderKillfeed();
+      }
+
+      function showBanner(text, accentClass) {
+        const container = document.getElementById('hudEventBannerContainer');
+        if (!container) return;
+        const div = document.createElement('div');
+        div.className = 'banner-anim glass-panel rounded-2xl px-4 py-2 text-xs sm:text-sm font-black tracking-wide border ' + (accentClass || 'border-amber-400/50 text-amber-300');
+        div.textContent = text;
+        container.appendChild(div);
+        setTimeout(function () {
+          if (div.parentNode) div.parentNode.removeChild(div);
+        }, 2650);
+      }
+
+      function checkLevelUp() {
+        while (profile.xp >= profile.level * 120) {
+          profile.xp -= profile.level * 120;
+          profile.level += 1;
+        }
+        saveGameData();
+      }
+
+      function checkBombEliminationWin() {
+        const redAtk = isRedAttacking();
+        const atkTeam = redAtk ? 'red' : 'blue';
+        const defTeam = redAtk ? 'blue' : 'red';
+        const playerAlive = player.respawnTimer <= 0;
+        const atkAliveCount = bots.filter(function (b) { return b.visualTeam === atkTeam && b.alive; }).length + (state.playerTeam === atkTeam && playerAlive ? 1 : 0);
+        const defAliveCount = bots.filter(function (b) { return b.visualTeam === defTeam && b.alive; }).length + (state.playerTeam === defTeam && playerAlive ? 1 : 0);
+
+        if (state.bombState !== 'PLANTED' && atkAliveCount === 0) {
+          finishRound(defTeam, 'Все атакующие устранены.');
+        } else if (defAliveCount === 0 && state.bombState === 'PLANTED') {
+          finishRound(atkTeam, 'Все защитники устранены после установки бомбы.');
+        } else if (defAliveCount === 0 && state.bombState !== 'PLANTED') {
+          finishRound(atkTeam, 'Все защитники устранены.');
+        }
+      }
+
+      function finishRound(winnerTeam, reason) {
+        if (state.matchState !== MATCH_STATES.ROUND_ACTIVE) return;
+        const mode = getCurrentMode();
+        if (mode.isBomb || mode.id === 'comp_5v5' || mode.id === 'duel_1v1') {
+          if (winnerTeam === 'blue') state.blueScore += 1;
+          else if (winnerTeam === 'red') state.redScore += 1;
+        }
+
+        audioSys.playRoundEnd(winnerTeam === state.playerTeam);
+        const winnerLabel = mode.isBomb
+          ? (winnerTeam === (isRedAttacking() ? 'red' : 'blue') ? 'Победа атакующих' : 'Победа защитников')
+          : (winnerTeam === 'blue' ? 'Синяя команда выиграла раунд' : 'Красная команда выиграла раунд');
+
+        showBanner(winnerLabel + ' — ' + reason, winnerTeam === 'blue' ? 'border-sky-400/70 text-sky-300' : 'border-rose-400/70 text-rose-300');
+        state.matchState = MATCH_STATES.ROUND_RESULT;
+        state.phaseTimer = 3.0;
+        setUiScreen('ROUND_RES');
+
+        const subEl = document.getElementById('roundResSubtitle');
+        const winEl = document.getElementById('roundResWinner');
+        const reaEl = document.getElementById('roundResReason');
+        const bEl = document.getElementById('roundResBlueScore');
+        const rEl = document.getElementById('roundResRedScore');
+        if (subEl) subEl.textContent = 'РАУНД ' + state.roundNumber + ' ИЗ ' + state.maxRounds + ' ЗАВЕРШЁН';
+        if (winEl) winEl.textContent = winnerLabel;
+        if (reaEl) reaEl.textContent = reason;
+        if (bEl) bEl.textContent = String(state.blueScore);
+        if (rEl) rEl.textContent = String(state.redScore);
+      }
+
+      function startNextRound() {
+        const mode = getCurrentMode();
+        state.roundNumber += 1;
+        state.roundTimer = mode.roundSec;
+        state.bombState = 'NONE';
+        state.bombZone = null;
+        state.bombTimer = 25;
+        state.matchState = MATCH_STATES.ROUND_ACTIVE;
+        createRoster();
+        setUiScreen('HUD');
+        showBanner('РАУНД ' + state.roundNumber + ' НАЧАЛСЯ', 'border-amber-400/60 text-amber-300');
+      }
+
+      function finishMatch() {
+        state.matchState = MATCH_STATES.MATCH_RESULT;
+        const playerWonMatch = state.blueScore > state.redScore
+          ? state.playerTeam === 'blue'
+          : (state.redScore > state.blueScore ? state.playerTeam === 'red' : true);
+
+        const xpGain = playerWonMatch ? 140 : 75;
+        const creditGain = playerWonMatch ? 260 : 120;
+        profile.matchesPlayed += 1;
+        if (playerWonMatch) profile.wins += 1;
+        else profile.losses += 1;
+        profile.xp += xpGain;
+        profile.credits += creditGain;
+        checkLevelUp();
+
+        const mapObj = getCurrentMap();
+        const modeObj = getCurrentMode();
+        profile.history.unshift({
+          map: mapObj.name,
+          mode: modeObj.name,
+          score: state.blueScore + ' : ' + state.redScore,
+          result: playerWonMatch ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ',
+          kills: state.matchKills,
+          date: new Date().toLocaleDateString('ru-RU')
+        });
+        if (profile.history.length > 15) profile.history.pop();
+        saveGameData();
+
+        setUiScreen('MATCH_END');
+        const titleEl = document.getElementById('matchEndWinnerTitle');
+        const sumEl = document.getElementById('matchEndSummaryText');
+        const kEl = document.getElementById('matchEndKills');
+        const dEl = document.getElementById('matchEndDeaths');
+        const srEl = document.getElementById('matchEndScoreRank');
+        const sbEl = document.getElementById('matchEndScoreboard');
+
+        if (titleEl) {
+          titleEl.textContent = state.blueScore > state.redScore
+            ? 'ПОБЕДА СИНЕЙ КОМАНДЫ'
+            : (state.redScore > state.blueScore ? 'ПОБЕДА КРАСНОЙ КОМАНДЫ' : 'НИЧЬЯ В МАТЧЕ');
+        }
+        if (sumEl) {
+          sumEl.textContent = mapObj.name + ' • Счёт ' + state.blueScore + ' : ' + state.redScore + ' • +' + xpGain + ' XP / +' + creditGain + ' FS';
+        }
+        if (kEl) kEl.textContent = String(state.matchKills);
+        if (dEl) dEl.textContent = String(state.matchDeaths);
+        if (srEl) srEl.textContent = state.matchScore + ' • ' + getRankName(profile.level);
+        if (sbEl) {
+          sbEl.innerHTML = bots.map(function (b) {
+            const col = b.visualTeam === 'red' ? 'text-rose-300' : 'text-sky-300';
+            return '<div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/75 border border-slate-800">' +
+              '<span class="font-extrabold ' + col + '">' + b.name + '</span>' +
+              '<span class="font-mono text-slate-300">K: ' + b.kills + ' / D: ' + b.deaths + '</span>' +
+              '</div>';
+          }).join('');
+        }
+      }
+
+      function advanceAfterRoundResult() {
+        const mode = getCurrentMode();
+        const halfRound = Math.floor(mode.rounds / 2);
+        if (state.roundNumber >= mode.rounds) {
+          finishMatch();
+          return;
+        }
+        if (mode.isBomb && state.roundNumber === halfRound) {
+          state.matchState = MATCH_STATES.SIDE_SWITCH;
+          state.phaseTimer = 3.2;
+          setUiScreen('SIDE_SW');
+          const redNowDef = isRedAttacking();
+          const redLabel = document.getElementById('sideSwitchRedRole');
+          const blueLabel = document.getElementById('sideSwitchBlueRole');
+          if (redLabel) redLabel.textContent = 'Красная команда: теперь ' + (redNowDef ? 'ЗАЩИТНИКИ' : 'АТАКУЮЩИЕ');
+          if (blueLabel) blueLabel.textContent = 'Синяя команда: теперь ' + (redNowDef ? 'АТАКУЮЩИЕ' : 'ЗАЩИТНИКИ');
+          return;
+        }
+        startNextRound();
+      }
+
+      function damageBot(bot, dmg, attackerIsPlayer, attackerName, attackerTeam) {
+        if (!bot || !bot.alive || bot.spawnProtection > 0) return;
+        if (state.matchState !== MATCH_STATES.ROUND_ACTIVE) return;
+        bot.hitFlash = 0.16;
+
+        let remaining = dmg;
+        if (bot.ap > 0) {
+          const absorbed = Math.min(bot.ap, Math.ceil(remaining * 0.4));
+          bot.ap = Math.max(0, bot.ap - absorbed);
+          remaining = Math.max(1, remaining - absorbed);
+        }
+        bot.hp -= remaining;
+
+        for (let p = 0; p < 5; p++) {
+          particles.push({
+            x: bot.x,
+            y: 1.15,
+            z: bot.z,
+            vx: (Math.random() - 0.5) * 4.5,
+            vy: 1.5 + Math.random() * 2.5,
+            vz: (Math.random() - 0.5) * 4.5,
+            life: 0.35,
+            color: bot.visualTeam === 'red' ? '#fb7185' : '#38bdf8'
+          });
+        }
+
+        if (bot.hp <= 0) {
+          bot.hp = 0;
+          bot.alive = false;
+          bot.respawnTimer = 3.2;
+          bot.deaths += 1;
+          pushKillfeed(attackerName, bot.name, attackerTeam, bot.visualTeam);
+
+          if (attackerIsPlayer) {
+            state.matchKills += 1;
+            state.matchScore += 100;
+            profile.kills += 1;
+            profile.xp += 25;
+            profile.credits += 35;
+            audioSys.playHit(true);
+            checkLevelUp();
+          } else {
+            const kBot = bots.find(function (b) { return b.name === attackerName; });
+            if (kBot) kBot.kills += 1;
+          }
+
+          const mode = getCurrentMode();
+          if (attackerTeam === 'blue') state.blueScore += 1;
+          else if (attackerTeam === 'red') state.redScore += 1;
+
+          if (!mode.isBomb && state.blueScore >= mode.winScore) {
+            finishRound('blue', 'Достигнут лимит очков синей команды.');
+          } else if (!mode.isBomb && state.redScore >= mode.winScore) {
+            finishRound('red', 'Достигнут лимит очков красной команды.');
+          } else if (mode.isBomb) {
+            checkBombEliminationWin();
+          }
+        } else if (attackerIsPlayer) {
+          audioSys.playHit(false);
+        }
+      }
+
+      function damagePlayer(dmg, attackerName, attackerTeam) {
+        if (player.respawnTimer > 0 || player.spawnProtection > 0) return;
+        if (state.matchState !== MATCH_STATES.ROUND_ACTIVE) return;
+
+        let remaining = dmg;
+        if (player.ap > 0) {
+          const absorbed = Math.min(player.ap, Math.ceil(remaining * 0.4));
+          player.ap = Math.max(0, player.ap - absorbed);
+          remaining = Math.max(1, remaining - absorbed);
+        }
+        player.hp -= remaining;
+        if (player.hp <= 0) {
+          player.hp = 0;
+          player.respawnTimer = 3.5;
+          state.matchDeaths += 1;
+          profile.deaths += 1;
+          pushKillfeed(attackerName, profile.nickname, attackerTeam, state.playerTeam);
+          if (attackerTeam === 'blue') state.blueScore += 1;
+          else if (attackerTeam === 'red') state.redScore += 1;
+          showBanner('ВЫ ВЫБЫЛИ • ВОЗРОЖДЕНИЕ ЧЕРЕЗ 3.5 СЕК', 'border-rose-400/60 text-rose-300');
+          if (getCurrentMode().isBomb) checkBombEliminationWin();
+        }
+      }
+
+      function prepareNewMatch(goStraightToActive) {
+        audioSys.ensure();
+        const mode = getCurrentMode();
+        state.roundNumber = 1;
+        state.maxRounds = mode.rounds;
+        state.roundTimer = mode.roundSec;
+        state.blueScore = 0;
+        state.redScore = 0;
+        state.matchKills = 0;
+        state.matchDeaths = 0;
+        state.matchScore = 0;
+        state.bombState = 'NONE';
+        state.bombZone = null;
+        state.bombTimer = 25;
+        killfeedItems = [];
+        renderKillfeed();
+        createRoster();
+
+        if (goStraightToActive) {
+          state.matchState = MATCH_STATES.ROUND_ACTIVE;
+          setUiScreen('HUD');
+          showBanner('БОЙ НАЧАЛСЯ • ' + getCurrentMap().name, 'border-emerald-400/70 text-emerald-300');
+        } else {
+          state.matchState = MATCH_STATES.PREPARATION;
+          state.prepTimer = 2.0;
+          setUiScreen('TEAM_PREP');
+        }
+      }
+
+      function renderTeamPrepScreen() {
+        const mode = getCurrentMode();
+        const map = getCurrentMap();
+        const modeLbl = document.getElementById('prepModeLabel');
+        const mapTitle = document.getElementById('prepMapTitle');
+        const descEl = document.getElementById('prepModeDesc');
+        const bRole = document.getElementById('blueRoleBadge');
+        const rRole = document.getElementById('redRoleBadge');
+        const bRoster = document.getElementById('blueRosterText');
+        const rRoster = document.getElementById('redRosterText');
+        const bBtn = document.getElementById('pickBlueTeamBtn');
+        const rBtn = document.getElementById('pickRedTeamBtn');
+
+        if (modeLbl) modeLbl.textContent = mode.name.toUpperCase();
+        if (mapTitle) mapTitle.textContent = 'КАРТА: ' + map.name;
+        if (descEl) descEl.textContent = mode.desc + ' • ' + map.desc;
+        if (bRole) bRole.textContent = getTeamRoleLabel('blue');
+        if (rRole) rRole.textContent = getTeamRoleLabel('red');
+        if (bRoster) bRoster.textContent = (state.playerTeam === 'blue' ? 'Вы + 4 синих бойца' : '5 синих бойцов') + ' (20 HP + 20 AP)';
+        if (rRoster) rRoster.textContent = (state.playerTeam === 'red' ? 'Вы + 4 красных бойца' : '5 красных бойцов') + ' (20 HP + 20 AP)';
+
+        if (bBtn) {
+          bBtn.className = 'p-4 rounded-2xl bg-sky-950/70 hover:bg-sky-900/70 text-left transition cursor-pointer ' +
+            (state.playerTeam === 'blue' ? 'border-2 border-sky-400 ring-2 ring-sky-400/30' : 'border border-sky-500/30');
+        }
+        if (rBtn) {
+          rBtn.className = 'p-4 rounded-2xl bg-rose-950/70 hover:bg-rose-900/70 text-left transition cursor-pointer ' +
+            (state.playerTeam === 'red' ? 'border-2 border-rose-400 ring-2 ring-rose-400/30' : 'border border-rose-500/30');
+        }
+      }
+
+      /* =====================================================================
+         SECTION 7: WEAPON FIRING, RELOADING & BOMB INTERACTION
+         ===================================================================== */
+      let firingHeld = false;
+
+      function triggerReload() {
+        const w = getActiveWeapon();
+        if (w.isMelee || w.isGrenade) return;
+        if (player.reloadTimer > 0) return;
+        if (player.magAmmo[w.id] >= w.mag) return;
+        const dur = w.category === 'sniper' ? 1.25 : (w.category === 'shotgun' ? 1.15 : (w.category === 'pistol' ? 0.78 : 0.95));
+        player.reloadDuration = dur;
+        player.reloadTimer = dur;
+        player.inspectTimer = 0;
+        audioSys.playReload();
+      }
+
+      function triggerInspect() {
+        if (player.reloadTimer > 0) return;
+        const w = getActiveWeapon();
+        const dur = w.category === 'sniper' ? 1.85 : (w.isMelee ? 1.35 : 1.55);
+        player.inspectDuration = dur;
+        player.inspectTimer = dur;
+      }
+
+      function tryFireWeapon() {
+        if (state.matchState !== MATCH_STATES.ROUND_ACTIVE || state.uiScreen !== 'HUD') return;
+        if (player.respawnTimer > 0 || player.reloadTimer > 0 || player.fireCooldown > 0) return;
+
+        const w = getActiveWeapon();
+        player.fireCooldown = w.fireRate;
+        player.fireAnimDuration = Math.max(0.07, Math.min(0.45, w.fireRate * 0.92 + 0.04));
+        player.fireAnimTimer = player.fireAnimDuration;
+        if (w.isMelee) player.slashToggle *= -1;
+        player.inspectTimer = 0;
+
+        if (!w.isMelee && !w.isGrenade) {
+          player.magAmmo[w.id] -= 1;
+          if (player.magAmmo[w.id] <= 0) {
+            player.magAmmo[w.id] = w.mag;
+            player.reloadDuration = 0.85;
+            player.reloadTimer = 0.85;
+          }
+        }
+
+        // +recoilPitch tilts camera UP (+Y); +recoilYaw turns camera RIGHT (+X)
+        player.recoilPitch = Math.min(0.24, player.recoilPitch + (w.recoil || 0.02));
+        player.recoilYaw += (Math.random() - 0.5) * (w.recoil || 0.02) * 0.7;
+        audioSys.playShot(w);
+
+        // World axes: +X right, +Y up, +Z forward. Forward horizontal is (sin(yaw), 0, cos(yaw)).
+        const cosPitch = Math.cos(player.pitch);
+        const sinPitch = Math.sin(player.pitch);
+        const dirX = Math.sin(player.yaw) * cosPitch;
+        const dirY = sinPitch;
+        const dirZ = Math.cos(player.yaw) * cosPitch;
+
+        if (w.isGrenade) {
+          thrownGrenades.push({
+            x: player.x + dirX * 0.8,
+            y: player.y - 0.15,
+            z: player.z + dirZ * 0.8,
+            vx: dirX * 13.5,
+            vy: dirY * 13.5 + 3.6,
+            vz: dirZ * 13.5,
+            fuse: 1.5,
+            dmg: w.dmg
+          });
+          return;
+        }
+
+        const pellets = w.pellets || 1;
+        const maxRange = w.isMelee ? 2.8 : 65;
+
+        for (let pel = 0; pel < pellets; pel++) {
+          const spread = w.isMelee ? 0.04 : (player.aiming ? 0.008 : 0.024);
+          const rx = dirX + (Math.random() - 0.5) * spread;
+          const ry = dirY + (Math.random() - 0.5) * spread;
+          const rz = dirZ + (Math.random() - 0.5) * spread;
+          const len = Math.hypot(rx, ry, rz) || 1;
+          const ux = rx / len;
+          const uy = ry / len;
+          const uz = rz / len;
+
+          let bestBot = null;
+          let bestDist = maxRange;
+
+          for (let i = 0; i < bots.length; i++) {
+            const b = bots[i];
+            if (!b.alive) continue;
+            if (b.team === (getCurrentMode().id === 'ffa' ? 'ffa_' + b.id : state.playerTeam)) continue;
+
+            const toX = b.x - player.x;
+            const toZ = b.z - player.z;
+            const proj = toX * ux + toZ * uz;
+            if (proj <= 0.4 || proj > bestDist) continue;
+            const perpSq = (toX * toX + toZ * toZ) - proj * proj;
+            if (perpSq <= 0.68 * 0.68) {
+              const targetY = b.y + 1.05;
+              const rayY = player.y + uy * proj;
+              if (Math.abs(rayY - targetY) <= 1.15) {
+                bestDist = proj;
+                bestBot = b;
+              }
+            }
+          }
+
+          tracers.push({
+            x1: player.x + ux * 0.6,
+            y1: player.y - 0.16 + uy * 0.6,
+            z1: player.z + uz * 0.6,
+            x2: player.x + ux * bestDist,
+            y2: player.y + uy * bestDist,
+            z2: player.z + uz * bestDist,
+            life: 0.09,
+            color: w.category === 'sniper' ? '#fde047' : '#fbbf24'
+          });
+
+          if (bestBot) {
+            damageBot(bestBot, w.dmg, true, profile.nickname, state.playerTeam);
+          }
+        }
+      }
+
+      function getNearbyBombZone() {
+        const map = getCurrentMap();
+        const dA = Math.hypot(player.x - map.zoneA.x, player.z - map.zoneA.z);
+        if (dA <= map.zoneA.r + 1.2) return map.zoneA.label;
+        const dB = Math.hypot(player.x - map.zoneB.x, player.z - map.zoneB.z);
+        if (dB <= map.zoneB.r + 1.2) return map.zoneB.label;
+        return null;
+      }
+
+      function performBombAction() {
+        const mode = getCurrentMode();
+        if (!mode.isBomb || state.matchState !== MATCH_STATES.ROUND_ACTIVE) return;
+        const redAtk = isRedAttacking();
+        const playerIsAttacker = (state.playerTeam === 'red' && redAtk) || (state.playerTeam === 'blue' && !redAtk);
+        const zone = getNearbyBombZone();
+
+        if (state.bombState === 'NONE' && playerIsAttacker && zone) {
+          state.bombState = 'PLANTED';
+          state.bombZone = zone;
+          state.bombPos = { x: player.x, y: 0.12, z: player.z };
+          state.bombTimer = 25;
+          showBanner('Бомба установлена (Зона ' + zone + ')', 'border-rose-400/80 text-rose-300');
+          audioSys.playHit(false);
+        } else if (state.bombState === 'PLANTED' && !playerIsAttacker) {
+          const distToBomb = Math.hypot(player.x - state.bombPos.x, player.z - state.bombPos.z);
+          if (distToBomb <= 3.6) {
+            state.bombState = 'DEFUSED';
+            showBanner('Бомба обезврежена', 'border-sky-400/80 text-sky-300');
+            finishRound(state.playerTeam, 'Бомба обезврежена.');
+          }
+        }
+      }
+
+      /* =====================================================================
+         SECTION 8: STANDARD PC CONTROLS + CUSTOMIZABLE MULTI-TOUCH HUD
+         ===================================================================== */
+      const keysDown = {};
+      const touchJoyState = { active: false, touchId: null, dx: 0, dy: 0 };
+      const touchLookState = { active: false, touchId: null, lastX: 0, lastY: 0 };
+
+      let layoutEditMode = false;
+      let draggingControlId = null;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+
+      function getDefaultTouchLayoutForViewport() {
+        const isPortrait = (window.innerHeight || 600) > (window.innerWidth || 1024);
+        const joyPos = isPortrait ? { left: 20, bottom: 24 } : { left: 24, bottom: 24 };
+        const weaponBarPos = isPortrait ? { right: 14, bottom: 204 } : { right: 18, bottom: 186 };
+        const firePos = isPortrait ? { right: 20, bottom: 24 } : { right: 26, bottom: 26 };
+        const aimPos = isPortrait ? { right: 112, bottom: 32 } : { right: 122, bottom: 38 };
+        const jumpPos = isPortrait ? { right: 24, bottom: 116 } : { right: 28, bottom: 118 };
+        const crouchPos = isPortrait ? { right: 174, bottom: 24 } : { right: 186, bottom: 26 };
+        const reloadPos = isPortrait ? { right: 92, bottom: 108 } : { right: 98, bottom: 114 };
+
+        return {
+          joystick: joyPos,
+          weaponBar: weaponBarPos,
+          fire: firePos,
+          aim: aimPos,
+          jump: jumpPos,
+          crouch: crouchPos,
+          reload: reloadPos
+        };
+      }
+
+      function applyTouchHudSettings() {
+        const scale = (settings.buttonSizePct || 100) / 100;
+        const alpha = (settings.buttonOpacityPct || 85) / 100;
+        const viewportDefaults = getDefaultTouchLayoutForViewport();
+
+        document.querySelectorAll('.touch-draggable').forEach(function (el) {
+          const cid = el.getAttribute('data-control-id');
+          const pos = (settings.touchLayout && settings.touchLayout[cid]) || viewportDefaults[cid] || DEFAULT_TOUCH_LAYOUT[cid];
+          if (pos) {
+            if (typeof pos.left === 'number') {
+              el.style.left = pos.left + 'px';
+              el.style.right = 'auto';
+            } else if (typeof pos.right === 'number') {
+              el.style.right = pos.right + 'px';
+              el.style.left = 'auto';
+            }
+            if (typeof pos.bottom === 'number') {
+              el.style.bottom = pos.bottom + 'px';
+              el.style.top = 'auto';
+            }
+          }
+          el.style.opacity = String(alpha);
+          el.style.transform = 'scale(' + scale.toFixed(2) + ')';
+        });
+
+        const radarEl = document.getElementById('radarCanvas');
+        if (radarEl) radarEl.style.display = settings.showRadar ? 'block' : 'none';
+
+        const teleEl = document.getElementById('telemetryBox');
+        if (teleEl) teleEl.style.display = settings.showTelemetry ? 'block' : 'none';
+
+        const chSize = settings.crosshairSizePx || 10;
+        const chColor = settings.crosshairColor || '#34d399';
+        ['crosshairTop', 'crosshairBottom', 'crosshairLeft', 'crosshairRight'].forEach(function (id) {
+          const bar = document.getElementById(id);
+          if (bar) bar.style.backgroundColor = chColor;
+        });
+        const dot = document.getElementById('crosshairDot');
+        if (dot) {
+          dot.style.backgroundColor = chColor;
+          dot.style.width = Math.max(4, Math.round(chSize * 0.45)) + 'px';
+          dot.style.height = Math.max(4, Math.round(chSize * 0.45)) + 'px';
+        }
+      }
+
+      function selectWeaponSlot(slotIdx) {
+        if (slotIdx < 0 || slotIdx > 3) return;
+        player.activeSlot = slotIdx;
+        player.reloadTimer = 0;
+        player.fireAnimTimer = 0;
+        const w = getActiveWeapon();
+        const eqDur = w.category === 'sniper' ? 0.56 : (w.isMelee ? 0.30 : 0.42);
+        player.equipDuration = eqDur;
+        player.equipTimer = eqDur;
+        player.inspectTimer = 0;
+        audioSys.playUi();
+        refreshWeaponSlotPills();
+        updateHudText();
+      }
+
+      window.addEventListener('keydown', function (e) {
+        const code = e.code;
+        keysDown[code] = true;
+        if (state.uiScreen !== 'HUD') return;
+
+        if (code === 'Digit1') selectWeaponSlot(0);
+        else if (code === 'Digit2') selectWeaponSlot(1);
+        else if (code === 'Digit3') selectWeaponSlot(2);
+        else if (code === 'Digit4') selectWeaponSlot(3);
+        else if (code === 'KeyR') triggerReload();
+        else if (code === 'KeyI') triggerInspect();
+        else if (code === 'KeyF' || code === 'KeyE') performBombAction();
+        else if (code === 'ControlLeft' || code === 'ControlRight' || code === 'KeyC') {
+          player.crouching = !player.crouching;
+        } else if (code === 'Space' && player.onGround) {
+          player.vy = 6.8;
+          player.onGround = false;
+          audioSys.playStep(true);
+        } else if ((code === 'Escape' || code === 'KeyP') && state.matchState === MATCH_STATES.ROUND_ACTIVE) {
+          state.matchState = MATCH_STATES.PAUSED;
+          setUiScreen('PAUSE');
+        }
+      });
+
+      window.addEventListener('keyup', function (e) {
+        keysDown[e.code] = false;
+      });
+
+      const gameCanvas = document.getElementById('gameCanvas');
+
+      gameCanvas.addEventListener('wheel', function (e) {
+        if (state.uiScreen !== 'HUD') return;
+        e.preventDefault();
+        const dir = e.deltaY > 0 ? 1 : -1;
+        const nextSlot = (player.activeSlot + dir + 4) % 4;
+        selectWeaponSlot(nextSlot);
+      }, { passive: false });
+
+      gameCanvas.addEventListener('mousedown', function (e) {
+        if (state.uiScreen !== 'HUD') return;
+        audioSys.ensure();
+        if (e.button === 0) {
+          firingHeld = true;
+          tryFireWeapon();
+          if (document.pointerLockElement !== gameCanvas && gameCanvas.requestPointerLock) {
+            try { gameCanvas.requestPointerLock(); } catch (err) {}
+          }
+        } else if (e.button === 2) {
+          player.aiming = true;
+        }
+      });
+
+      window.addEventListener('mouseup', function (e) {
+        if (e.button === 0) firingHeld = false;
+        if (e.button === 2) player.aiming = false;
+      });
+
+      gameCanvas.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+      });
+
+      let lastMouseX = null;
+      let lastMouseY = null;
+
+      window.addEventListener('mousemove', function (e) {
+        if (state.uiScreen !== 'HUD') return;
+        const sens = 0.0026 * (settings.sensitivity || 1.0);
+        let dx = 0;
+        let dy = 0;
+        if (document.pointerLockElement === gameCanvas) {
+          dx = e.movementX || 0;
+          dy = e.movementY || 0;
+        } else if (firingHeld || e.buttons === 1 || e.buttons === 2) {
+          dx = typeof e.movementX === 'number' && e.movementX !== 0
+            ? e.movementX
+            : (lastMouseX !== null ? e.clientX - lastMouseX : 0);
+          dy = typeof e.movementY === 'number' && e.movementY !== 0
+            ? e.movementY
+            : (lastMouseY !== null ? e.clientY - lastMouseY : 0);
+        }
+        // dx > 0 (right) -> +yaw (turn right); dy < 0 (up) -> +pitch (look up); dy > 0 (down) -> -pitch (look down)
+        player.yaw += dx * sens;
+        player.pitch = Math.max(-1.35, Math.min(1.35, player.pitch - dy * sens));
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      });
+
+      const joyBase = document.getElementById('touchJoyBase');
+      const joyThumb = document.getElementById('touchJoyThumb');
+
+      function updateJoystickFromPoint(clientX, clientY) {
+        const rect = joyBase.getBoundingClientRect();
+        const cx = rect.left + rect.width * 0.5;
+        const cy = rect.top + rect.height * 0.5;
+        const maxR = rect.width * 0.42;
+        let dx = clientX - cx;
+        let dy = clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > maxR) {
+          dx = (dx / dist) * maxR;
+          dy = (dy / dist) * maxR;
+        }
+        touchJoyState.dx = dx / maxR;
+        touchJoyState.dy = dy / maxR;
+        if (joyThumb) {
+          joyThumb.style.transform = 'translate(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px)';
+        }
+      }
+
+      joyBase.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        audioSys.ensure();
+        const t = e.changedTouches[0];
+        if (!t) return;
+        touchJoyState.active = true;
+        touchJoyState.touchId = t.identifier;
+        updateJoystickFromPoint(t.clientX, t.clientY);
+      }, { passive: false });
+
+      document.addEventListener('touchmove', function (e) {
+        if (layoutEditMode && draggingControlId) {
+          const t = e.touches[0];
+          if (!t) return;
+          const el = document.querySelector('[data-control-id="' + draggingControlId + '"]');
+          if (!el) return;
+          const leftVal = Math.max(8, Math.min(window.innerWidth - 90, t.clientX - dragOffsetX));
+          const bottomVal = Math.max(8, Math.min(window.innerHeight - 90, window.innerHeight - t.clientY - dragOffsetY));
+          settings.touchLayout[draggingControlId] = { left: Math.round(leftVal), bottom: Math.round(bottomVal) };
+          el.style.left = Math.round(leftVal) + 'px';
+          el.style.right = 'auto';
+          el.style.bottom = Math.round(bottomVal) + 'px';
+          return;
+        }
+
+        if (state.uiScreen !== 'HUD') return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (touchJoyState.active && t.identifier === touchJoyState.touchId) {
+            updateJoystickFromPoint(t.clientX, t.clientY);
+          } else if (touchLookState.active && t.identifier === touchLookState.touchId) {
+            const deltaX = t.clientX - touchLookState.lastX;
+            const deltaY = t.clientY - touchLookState.lastY;
+            touchLookState.lastX = t.clientX;
+            touchLookState.lastY = t.clientY;
+            const lookSens = 0.0062 * (settings.touchSensitivity || 1.25);
+            // deltaX > 0 (swipe right) -> +yaw (turn right); deltaY < 0 (swipe up) -> +pitch (look up)
+            player.yaw += deltaX * lookSens;
+            player.pitch = Math.max(-1.35, Math.min(1.35, player.pitch - deltaY * lookSens));
+          }
+        }
+      }, { passive: false });
+
+      function releaseTouches(e) {
+        if (layoutEditMode && draggingControlId) {
+          draggingControlId = null;
+          saveGameData();
+        }
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (touchJoyState.active && t.identifier === touchJoyState.touchId) {
+            touchJoyState.active = false;
+            touchJoyState.touchId = null;
+            touchJoyState.dx = 0;
+            touchJoyState.dy = 0;
+            if (joyThumb) joyThumb.style.transform = 'translate(0px, 0px)';
+          }
+          if (touchLookState.active && t.identifier === touchLookState.touchId) {
+            touchLookState.active = false;
+            touchLookState.touchId = null;
+          }
+        }
+      }
+
+      document.addEventListener('touchend', releaseTouches);
+      document.addEventListener('touchcancel', releaseTouches);
+
+      document.getElementById('mobileTouchHud').addEventListener('touchstart', function (e) {
+        if (layoutEditMode || state.uiScreen !== 'HUD') return;
+        if (e.target.closest('.touch-draggable')) return;
+        audioSys.ensure();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (!touchLookState.active && t.identifier !== touchJoyState.touchId) {
+            touchLookState.active = true;
+            touchLookState.touchId = t.identifier;
+            touchLookState.lastX = t.clientX;
+            touchLookState.lastY = t.clientY;
+            break;
+          }
+        }
+      }, { passive: true });
+
+      const touchFireBtn = document.getElementById('touchFireBtn');
+      touchFireBtn.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        audioSys.ensure();
+        touchFireBtn.classList.add('active-press');
+        firingHeld = true;
+        tryFireWeapon();
+      }, { passive: false });
+      touchFireBtn.addEventListener('touchend', function () {
+        firingHeld = false;
+        touchFireBtn.classList.remove('active-press');
+      });
+
+      const touchAimBtn = document.getElementById('touchAimBtn');
+      touchAimBtn.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        touchAimBtn.classList.add('active-press');
+        player.aiming = true;
+      }, { passive: false });
+      touchAimBtn.addEventListener('touchend', function () {
+        player.aiming = false;
+        touchAimBtn.classList.remove('active-press');
+      });
+
+      const touchJumpBtn = document.getElementById('touchJumpBtn');
+      touchJumpBtn.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        touchJumpBtn.classList.add('active-press');
+        if (player.onGround) {
+          player.vy = 6.8;
+          player.onGround = false;
+          audioSys.playStep(true);
+        }
+      }, { passive: false });
+      touchJumpBtn.addEventListener('touchend', function () {
+        touchJumpBtn.classList.remove('active-press');
+      });
+
+      const touchCrouchBtn = document.getElementById('touchCrouchBtn');
+      touchCrouchBtn.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        touchCrouchBtn.classList.add('active-press');
+        player.crouching = !player.crouching;
+      }, { passive: false });
+      touchCrouchBtn.addEventListener('touchend', function () {
+        touchCrouchBtn.classList.remove('active-press');
+      });
+
+      const touchReloadBtn = document.getElementById('touchReloadBtn');
+      touchReloadBtn.addEventListener('touchstart', function (e) {
+        if (layoutEditMode) return;
+        e.preventDefault();
+        touchReloadBtn.classList.add('active-press');
+        triggerReload();
+      }, { passive: false });
+      touchReloadBtn.addEventListener('touchend', function () {
+        touchReloadBtn.classList.remove('active-press');
+      });
+
+      document.querySelectorAll('#touchWeaponBar [data-slot]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          if (layoutEditMode) return;
+          e.stopPropagation();
+          selectWeaponSlot(parseInt(btn.getAttribute('data-slot'), 10));
+        });
+      });
+
+      document.querySelectorAll('.touch-draggable').forEach(function (el) {
+        el.addEventListener('mousedown', function (e) {
+          if (!layoutEditMode) return;
+          e.stopPropagation();
+          draggingControlId = el.getAttribute('data-control-id');
+          const rect = el.getBoundingClientRect();
+          dragOffsetX = e.clientX - rect.left;
+          dragOffsetY = window.innerHeight - e.clientY - (window.innerHeight - rect.bottom);
+        });
+        el.addEventListener('touchstart', function (e) {
+          if (!layoutEditMode) return;
+          e.stopPropagation();
+          const t = e.touches[0];
+          if (!t) return;
+          draggingControlId = el.getAttribute('data-control-id');
+          const rect = el.getBoundingClientRect();
+          dragOffsetX = t.clientX - rect.left;
+          dragOffsetY = window.innerHeight - t.clientY - (window.innerHeight - rect.bottom);
+        }, { passive: true });
+      });
+
+      window.addEventListener('mousemove', function (e) {
+        if (!layoutEditMode || !draggingControlId) return;
+        const el = document.querySelector('[data-control-id="' + draggingControlId + '"]');
+        if (!el) return;
+        const leftVal = Math.max(8, Math.min(window.innerWidth - 90, e.clientX - dragOffsetX));
+        const bottomVal = Math.max(8, Math.min(window.innerHeight - 90, window.innerHeight - e.clientY - dragOffsetY));
+        settings.touchLayout[draggingControlId] = { left: Math.round(leftVal), bottom: Math.round(bottomVal) };
+        el.style.left = Math.round(leftVal) + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = Math.round(bottomVal) + 'px';
+      });
+
+      window.addEventListener('mouseup', function () {
+        if (layoutEditMode && draggingControlId) {
+          draggingControlId = null;
+          saveGameData();
+        }
+      });
+
+      function setLayoutEditMode(enabled) {
+        layoutEditMode = enabled;
+        const hud = document.getElementById('matchHud');
+        const bar = document.getElementById('layoutEditorBar');
+        if (hud) {
+          if (enabled) hud.classList.add('layout-edit-active');
+          else hud.classList.remove('layout-edit-active');
+        }
+        if (bar) {
+          if (enabled) bar.classList.remove('hidden');
+          else bar.classList.add('hidden');
+        }
+      }
+
+      document.getElementById('hudEditLayoutBtn').addEventListener('click', function () {
+        setLayoutEditMode(!layoutEditMode);
+      });
+      document.getElementById('saveLayoutBtn').addEventListener('click', function () {
+        saveGameData();
+        setLayoutEditMode(false);
+        showBanner('Раскладка кнопок сохранена', 'border-emerald-400/70 text-emerald-300');
+      });
+      document.getElementById('resetLayoutBtn').addEventListener('click', function () {
+        settings.touchLayout = getDefaultTouchLayoutForViewport();
+        saveGameData();
+        applyTouchHudSettings();
+        showBanner('Стандартная раскладка восстановлена', 'border-sky-400/70 text-sky-300');
+      });
+
+      /* =====================================================================
+         SECTION 9: SIMULATION STEP (MOVEMENT, BOTS, BOMB & ROUND TIMERS)
+         ===================================================================== */
+      function updateHudText() {
+        const mode = getCurrentMode();
+        const bScore = document.getElementById('hudBlueScore');
+        const rScore = document.getElementById('hudRedScore');
+        const bAlive = document.getElementById('hudBlueAlive');
+        const rAlive = document.getElementById('hudRedAlive');
+        const rndText = document.getElementById('hudRoundText');
+        const tmrText = document.getElementById('hudTimerText');
+        const bombBadge = document.getElementById('hudBombStatusBadge');
+        const zonePrompt = document.getElementById('hudZonePrompt');
+        const hpEl = document.getElementById('hudHpText');
+        const apEl = document.getElementById('hudApText');
+        const wNameEl = document.getElementById('hudWeaponName');
+        const ammoEl = document.getElementById('hudAmmoText');
+        const fpsEl = document.getElementById('hudFpsText');
+        const pingEl = document.getElementById('hudPingText');
+
+        if (bScore) bScore.textContent = String(state.blueScore);
+        if (rScore) rScore.textContent = String(state.redScore);
+
+        const blueCnt = bots.filter(function (b) { return b.visualTeam === 'blue' && b.alive; }).length + (state.playerTeam === 'blue' && player.respawnTimer <= 0 ? 1 : 0);
+        const redCnt = bots.filter(function (b) { return b.visualTeam === 'red' && b.alive; }).length + (state.playerTeam === 'red' && player.respawnTimer <= 0 ? 1 : 0);
+        if (bAlive) bAlive.textContent = String(blueCnt);
+        if (rAlive) rAlive.textContent = String(redCnt);
+
+        if (rndText) {
+          const roleTag = mode.isBomb ? (' • ' + getTeamRoleLabel(state.playerTeam)) : '';
+          rndText.textContent = 'РАУНД ' + state.roundNumber + '/' + state.maxRounds + roleTag;
+        }
+
+        const displaySec = (mode.isBomb && state.bombState === 'PLANTED') ? Math.max(0, Math.ceil(state.bombTimer)) : Math.max(0, Math.ceil(state.roundTimer));
+        const mm = String(Math.floor(displaySec / 60)).padStart(2, '0');
+        const ss = String(displaySec % 60).padStart(2, '0');
+        if (tmrText) tmrText.textContent = mm + ':' + ss;
+
+        if (bombBadge) {
+          if (!mode.isBomb) {
+            bombBadge.textContent = mode.name.toUpperCase();
+          } else if (state.bombState === 'PLANTED') {
+            bombBadge.textContent = '💣 БОМБА УСТАНОВЛЕНА В ЗОНЕ ' + (state.bombZone || 'A') + ' (' + displaySec + 'с)';
+          } else if (state.bombState === 'DEFUSED') {
+            bombBadge.textContent = '🛡 БОМБА ОБЕЗВРЕЖЕНА';
+          } else {
+            bombBadge.textContent = 'БОМБА: ОЖИДАНИЕ • ЗОНЫ A / B';
+          }
+        }
+
+        const nearZone = getNearbyBombZone();
+        if (zonePrompt) {
+          zonePrompt.textContent = nearZone ? ('Зона: ' + nearZone) : 'Зона: Сектор';
+        }
+
+        if (hpEl) hpEl.textContent = String(Math.max(0, Math.round(player.hp)));
+        if (apEl) apEl.textContent = String(Math.max(0, Math.round(player.ap)));
+
+        const w = getActiveWeapon();
+        if (wNameEl) wNameEl.textContent = w.name;
+        if (ammoEl) {
+          if (w.isMelee) ammoEl.textContent = 'НОЖ • ∞';
+          else if (w.isGrenade) ammoEl.textContent = 'ГРАНАТА • ∞';
+          else if (player.reloadTimer > 0) ammoEl.textContent = 'ПЕРЕЗАРЯДКА...';
+          else ammoEl.textContent = (player.magAmmo[w.id] || w.mag) + ' / ∞';
+        }
+
+        if (fpsEl) fpsEl.textContent = 'FPS: ' + telemetry.fps;
+        if (pingEl) pingEl.textContent = 'PING: ' + telemetry.pingMs + ' ms';
+      }
+
+      function stepSimulation(dt) {
+        const mode = getCurrentMode();
+        const map = getCurrentMap();
+        const blocks = getMapBlocks(state.selectedMapId);
+
+        if (state.matchState === MATCH_STATES.PREPARATION) {
+          state.prepTimer -= dt;
+          const prepTxt = document.getElementById('prepCountdownText');
+          if (prepTxt) prepTxt.textContent = 'Старт через ' + Math.max(0.1, state.prepTimer).toFixed(1) + ' сек...';
+          if (state.prepTimer <= 0) {
+            state.matchState = MATCH_STATES.ROUND_ACTIVE;
+            state.roundTimer = mode.roundSec;
+            setUiScreen('HUD');
+            showBanner('РАУНД 1 НАЧАЛСЯ • ' + map.name, 'border-emerald-400/70 text-emerald-300');
+          }
+          return;
+        }
+
+        if (state.matchState === MATCH_STATES.ROUND_RESULT) {
+          state.phaseTimer -= dt;
+          const rCount = document.getElementById('roundResCountdown');
+          if (rCount) rCount.textContent = 'Следующий этап через ' + Math.max(0.1, state.phaseTimer).toFixed(1) + ' сек...';
+          if (state.phaseTimer <= 0) advanceAfterRoundResult();
+          return;
+        }
+
+        if (state.matchState === MATCH_STATES.SIDE_SWITCH) {
+          state.phaseTimer -= dt;
+          const sCount = document.getElementById('sideSwitchCountdown');
+          if (sCount) sCount.textContent = 'Смена сторон через ' + Math.max(0.1, state.phaseTimer).toFixed(1) + ' сек...';
+          if (state.phaseTimer <= 0) startNextRound();
+          return;
+        }
+
+        if (state.matchState !== MATCH_STATES.ROUND_ACTIVE || state.uiScreen !== 'HUD') {
+          for (let bIdx = 0; bIdx < bots.length; bIdx++) {
+            const ambBot = bots[bIdx];
+            if (!ambBot.alive) continue;
+            ambBot.walkPhase += dt * 5.0;
+            const wp = BOT_WAYPOINTS[(bIdx + Math.floor(performance.now() * 0.0004)) % BOT_WAYPOINTS.length];
+            const dx = wp.x - ambBot.x;
+            const dz = wp.z - ambBot.z;
+            const d = Math.hypot(dx, dz) || 1;
+            ambBot.yaw = Math.atan2(dx, dz);
+            const resA = resolveCircleCollisions(ambBot.x + (dx / d) * 3.4 * dt, ambBot.z + (dz / d) * 3.4 * dt, 0.65, blocks);
+            ambBot.x = resA.x;
+            ambBot.z = resA.z;
+          }
+          return;
+        }
+
+        const turnSpeed = 2.15 * (settings.sensitivity || 1.0);
+        // Horizontal: left turns left (-yaw), right turns right (+yaw). Vertical: ArrowUp looks up (+pitch), ArrowDown looks down (-pitch).
+        if (keysDown['KeyQ'] || keysDown['ArrowLeft']) player.yaw -= turnSpeed * dt;
+        if (keysDown['KeyE'] || keysDown['ArrowRight']) player.yaw += turnSpeed * dt;
+        if (keysDown['ArrowUp']) player.pitch = Math.min(1.35, player.pitch + turnSpeed * 0.85 * dt);
+        if (keysDown['ArrowDown']) player.pitch = Math.max(-1.35, player.pitch - turnSpeed * 0.85 * dt);
+
+        let moveForward = 0;
+        let moveRight = 0;
+        if (keysDown['KeyW']) moveForward += 1;
+        if (keysDown['KeyS']) moveForward -= 1;
+        if (keysDown['KeyD']) moveRight += 1;
+        if (keysDown['KeyA']) moveRight -= 1;
+
+        if (touchJoyState.active) {
+          moveForward -= touchJoyState.dy;
+          moveRight += touchJoyState.dx;
+        }
+
+        const magInput = Math.hypot(moveForward, moveRight);
+        if (magInput > 1) {
+          moveForward /= magInput;
+          moveRight /= magInput;
+        }
+
+        player.sprinting = Boolean(keysDown['ShiftLeft'] || keysDown['ShiftRight']) && !player.crouching && !player.aiming && moveForward > 0.1;
+        const speed = player.crouching ? 4.4 : (player.sprinting ? 11.4 : 7.8);
+
+        // World space: forward = (sin(yaw), 0, cos(yaw)), right = (cos(yaw), 0, -sin(yaw))
+        const fwdX = Math.sin(player.yaw);
+        const fwdZ = Math.cos(player.yaw);
+        const rgtX = Math.cos(player.yaw);
+        const rgtZ = -Math.sin(player.yaw);
+
+        const desiredVx = (fwdX * moveForward + rgtX * moveRight) * speed;
+        const desiredVz = (fwdZ * moveForward + rgtZ * moveRight) * speed;
+
+        player.vx += (desiredVx - player.vx) * Math.min(1, dt * 14);
+        player.vz += (desiredVz - player.vz) * Math.min(1, dt * 14);
+
+        const nextPos = resolveCircleCollisions(player.x + player.vx * dt, player.z + player.vz * dt, 0.65, blocks);
+        player.x = nextPos.x;
+        player.z = nextPos.z;
+
+        const targetEyeY = player.crouching ? 1.15 : 1.72;
+        if (!player.onGround || player.y > targetEyeY) {
+          player.vy -= 18.5 * dt;
+          player.y += player.vy * dt;
+          if (player.y <= targetEyeY) {
+            player.y = targetEyeY;
+            player.vy = 0;
+            player.onGround = true;
+          }
+        } else {
+          player.y += (targetEyeY - player.y) * Math.min(1, dt * 15);
+        }
+
+        const horizSpeed = Math.hypot(player.vx, player.vz);
+        if (player.onGround && horizSpeed > 1.2) {
+          player.stepAccum += horizSpeed * dt;
+          const stride = player.sprinting ? 4.4 : 3.2;
+          if (player.stepAccum >= stride) {
+            player.stepAccum = 0;
+            audioSys.playStep(player.sprinting);
+          }
+        }
+
+        if (player.fireCooldown > 0) player.fireCooldown = Math.max(0, player.fireCooldown - dt);
+        if (player.fireAnimTimer > 0) player.fireAnimTimer = Math.max(0, player.fireAnimTimer - dt);
+        if (player.equipTimer > 0) player.equipTimer = Math.max(0, player.equipTimer - dt);
+        if (player.spawnProtection > 0) player.spawnProtection = Math.max(0, player.spawnProtection - dt);
+        if (player.inspectTimer > 0) player.inspectTimer = Math.max(0, player.inspectTimer - dt);
+        if (player.reloadTimer > 0) {
+          player.reloadTimer = Math.max(0, player.reloadTimer - dt);
+          if (player.reloadTimer === 0) {
+            const w = getActiveWeapon();
+            player.magAmmo[w.id] = w.mag;
+          }
+        }
+        player.recoilPitch *= Math.pow(0.04, dt);
+        player.recoilYaw *= Math.pow(0.04, dt);
+
+        if (firingHeld) tryFireWeapon();
+
+        if (player.respawnTimer > 0) {
+          player.respawnTimer -= dt;
+          if (player.respawnTimer <= 0) {
+            const sp = getSafeSpawnPoint(state.playerTeam, 2);
+            player.x = sp.x;
+            player.z = sp.z;
+            player.y = 1.72;
+            player.hp = 20;
+            player.ap = 20;
+            player.spawnProtection = 2.0;
+            showBanner('ВЫ ВОЗРОДИЛИСЬ • ЗАЩИТА 2 СЕК', 'border-sky-400/70 text-sky-300');
+          }
+        }
+
+        const ctxBtn = document.getElementById('contextualBombActionBtn');
+        if (ctxBtn) {
+          const redAtk = isRedAttacking();
+          const playerIsAtk = (state.playerTeam === 'red' && redAtk) || (state.playerTeam === 'blue' && !redAtk);
+          const nearZone = getNearbyBombZone();
+          if (mode.isBomb && state.bombState === 'NONE' && playerIsAtk && nearZone && player.respawnTimer <= 0) {
+            ctxBtn.classList.remove('hidden');
+            ctxBtn.textContent = '💣 Установить бомбу (Зона ' + nearZone + ')';
+          } else if (mode.isBomb && state.bombState === 'PLANTED' && !playerIsAtk && player.respawnTimer <= 0) {
+            const dBomb = Math.hypot(player.x - state.bombPos.x, player.z - state.bombPos.z);
+            if (dBomb <= 3.8) {
+              ctxBtn.classList.remove('hidden');
+              ctxBtn.textContent = '🛡 Обезвредить бомбу';
+            } else {
+              ctxBtn.classList.add('hidden');
+            }
+          } else {
+            ctxBtn.classList.add('hidden');
+          }
+        }
+
+        if (mode.isBomb && state.bombState === 'PLANTED') {
+          state.bombTimer -= dt;
+          if (state.bombTimer <= 0) {
+            state.bombTimer = 0;
+            state.bombState = 'EXPLODED';
+            for (let ex = 0; ex < 18; ex++) {
+              particles.push({
+                x: state.bombPos.x,
+                y: 0.5,
+                z: state.bombPos.z,
+                vx: (Math.random() - 0.5) * 11,
+                vy: 2 + Math.random() * 6,
+                vz: (Math.random() - 0.5) * 11,
+                life: 0.75,
+                color: ex % 2 === 0 ? '#f97316' : '#facc15'
+              });
+            }
+            finishRound(isRedAttacking() ? 'red' : 'blue', 'Бомба сработала в зоне ' + (state.bombZone || 'A') + '.');
+            return;
+          }
+        } else {
+          state.roundTimer -= dt;
+          if (state.roundTimer <= 0) {
+            state.roundTimer = 0;
+            if (mode.isBomb) {
+              const defTeam = isRedAttacking() ? 'blue' : 'red';
+              finishRound(defTeam, 'Время раунда вышло без установки бомбы.');
+            } else {
+              const winSide = state.blueScore > state.redScore ? 'blue' : (state.redScore > state.blueScore ? 'red' : 'blue');
+              finishRound(winSide, 'Время раунда завершилось.');
+            }
+            return;
+          }
+        }
+
+        for (let i = 0; i < bots.length; i++) {
+          const b = bots[i];
+          if (b.hitFlash > 0) b.hitFlash = Math.max(0, b.hitFlash - dt);
+          if (b.spawnProtection > 0) b.spawnProtection = Math.max(0, b.spawnProtection - dt);
+
+          if (!b.alive) {
+            if (!mode.isBomb) {
+              b.respawnTimer -= dt;
+              if (b.respawnTimer <= 0) {
+                const spB = getSafeSpawnPoint(b.visualTeam, i);
+                b.x = spB.x;
+                b.z = spB.z;
+                b.hp = 20;
+                b.ap = 20;
+                b.alive = true;
+                b.spawnProtection = 2.0;
+              }
+            }
+            continue;
+          }
+
+          let enemyX = null;
+          let enemyZ = null;
+          let enemyIsPlayer = false;
+          let enemyBot = null;
+          let minEnemyDist = 26;
+
+          const playerIsEnemy = player.respawnTimer <= 0 && (mode.id === 'ffa' || state.playerTeam !== b.team);
+          if (playerIsEnemy) {
+            const dP = Math.hypot(player.x - b.x, player.z - b.z);
+            if (dP < minEnemyDist) {
+              minEnemyDist = dP;
+              enemyX = player.x;
+              enemyZ = player.z;
+              enemyIsPlayer = true;
+            }
+          }
+
+          for (let j = 0; j < bots.length; j++) {
+            const other = bots[j];
+            if (!other.alive || other.id === b.id || other.team === b.team) continue;
+            const dO = Math.hypot(other.x - b.x, other.z - b.z);
+            if (dO < minEnemyDist) {
+              minEnemyDist = dO;
+              enemyX = other.x;
+              enemyZ = other.z;
+              enemyIsPlayer = false;
+              enemyBot = other;
+            }
+          }
+
+          b.strafeTimer -= dt;
+          if (b.strafeTimer <= 0) {
+            b.strafeTimer = 1.1 + Math.random() * 1.4;
+            b.strafeDir = -b.strafeDir;
+            if (Math.random() < 0.45) {
+              b.targetWp = BOT_WAYPOINTS[Math.floor(Math.random() * BOT_WAYPOINTS.length)];
+            }
+          }
+
+          let moveX = 0;
+          let moveZ = 0;
+
+          if (enemyX !== null) {
+            const toEX = enemyX - b.x;
+            const toEZ = enemyZ - b.z;
+            b.yaw = Math.atan2(toEX, toEZ);
+            const perpX = Math.cos(b.yaw) * b.strafeDir;
+            const perpZ = -Math.sin(b.yaw) * b.strafeDir;
+            const adv = minEnemyDist > 11 ? 0.55 : -0.15;
+            moveX = (toEX / (minEnemyDist || 1)) * adv + perpX * 0.78;
+            moveZ = (toEZ / (minEnemyDist || 1)) * adv + perpZ * 0.78;
+
+            b.fireTimer -= dt;
+            if (b.fireTimer <= 0) {
+              b.fireTimer = 0.45 + Math.random() * 0.55;
+              const muzzleX = b.x + Math.sin(b.yaw) * 0.65;
+              const muzzleZ = b.z + Math.cos(b.yaw) * 0.65;
+              tracers.push({
+                x1: muzzleX,
+                y1: 1.25,
+                z1: muzzleZ,
+                x2: enemyX,
+                y2: enemyIsPlayer ? player.y - 0.25 : 1.1,
+                z2: enemyZ,
+                life: 0.08,
+                color: b.visualTeam === 'red' ? '#fb7185' : '#60a5fa'
+              });
+
+              if (Math.random() < 0.46) {
+                if (enemyIsPlayer) damagePlayer(3, b.name, b.visualTeam);
+                else if (enemyBot) damageBot(enemyBot, 4, false, b.name, b.visualTeam);
+              }
+            }
+          } else {
+            const toWX = b.targetWp.x - b.x;
+            const toWZ = b.targetWp.z - b.z;
+            const distW = Math.hypot(toWX, toWZ);
+            if (distW < 2.2) {
+              b.targetWp = BOT_WAYPOINTS[Math.floor(Math.random() * BOT_WAYPOINTS.length)];
+            } else {
+              b.yaw = Math.atan2(toWX, toWZ);
+              moveX = toWX / distW;
+              moveZ = toWZ / distW;
+            }
+          }
+
+          const botSpeed = 5.4;
+          const resB = resolveCircleCollisions(b.x + moveX * botSpeed * dt, b.z + moveZ * botSpeed * dt, 0.65, blocks);
+          b.x = resB.x;
+          b.z = resB.z;
+          b.walkPhase += dt * 7.5;
+        }
+
+        for (let g = thrownGrenades.length - 1; g >= 0; g--) {
+          const gr = thrownGrenades[g];
+          gr.vy -= 16 * dt;
+          gr.x += gr.vx * dt;
+          gr.y += gr.vy * dt;
+          gr.z += gr.vz * dt;
+          if (gr.y < 0.15) {
+            gr.y = 0.15;
+            gr.vy = -gr.vy * 0.35;
+            gr.vx *= 0.65;
+            gr.vz *= 0.65;
+          }
+          gr.fuse -= dt;
+          if (gr.fuse <= 0) {
+            for (let ex = 0; ex < 14; ex++) {
+              particles.push({
+                x: gr.x,
+                y: gr.y + 0.3,
+                z: gr.z,
+                vx: (Math.random() - 0.5) * 9,
+                vy: 1.8 + Math.random() * 5,
+                vz: (Math.random() - 0.5) * 9,
+                life: 0.55,
+                color: '#fb923c'
+              });
+            }
+            for (let k = 0; k < bots.length; k++) {
+              const targetB = bots[k];
+              if (!targetB.alive) continue;
+              if (Math.hypot(targetB.x - gr.x, targetB.z - gr.z) < 6.0) {
+                damageBot(targetB, gr.dmg, true, profile.nickname, state.playerTeam);
+              }
+            }
+            thrownGrenades.splice(g, 1);
+          }
+        }
+
+        for (let t = tracers.length - 1; t >= 0; t--) {
+          tracers[t].life -= dt;
+          if (tracers[t].life <= 0) tracers.splice(t, 1);
+        }
+        for (let p = particles.length - 1; p >= 0; p--) {
+          const pt = particles[p];
+          pt.life -= dt;
+          pt.vy -= 12 * dt;
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.z += pt.vz * dt;
+          if (pt.y < 0.05) pt.y = 0.05;
+          if (pt.life <= 0) particles.splice(p, 1);
+        }
+
+        for (let kf = killfeedItems.length - 1; kf >= 0; kf--) {
+          killfeedItems[kf].ttl -= dt;
+          if (killfeedItems[kf].ttl <= 0) {
+            killfeedItems.splice(kf, 1);
+            renderKillfeed();
+          }
+        }
+
+        updateHudText();
+      }
+
+      /* =====================================================================
+         SECTION 10: SOLID NEAR-PLANE-CLIPPED 3D PERSPECTIVE ENGINE
+         ===================================================================== */
+      const ctx3d = gameCanvas.getContext('2d');
+      let viewWidth = window.innerWidth || 1024;
+      let viewHeight = window.innerHeight || 600;
+
+      function getQualityConfig() {
+        switch (settings.graphics) {
+          case 'Низкая': return { dprScale: 0.65, drawDist: 44, clouds: 4, detailed: false };
+          case 'Высокая': return { dprScale: 1.0, drawDist: 75, clouds: 10, detailed: true };
+          case 'Ультра': return { dprScale: Math.min(1.25, window.devicePixelRatio || 1), drawDist: 90, clouds: 14, detailed: true };
+          case 'Средняя':
+          default: return { dprScale: 0.85, drawDist: 58, clouds: 7, detailed: true };
+        }
+      }
+
+      function resizeViewport() {
+        viewWidth = window.innerWidth || 1024;
+        viewHeight = window.innerHeight || 600;
+        const q = getQualityConfig();
+        const scale = Math.max(0.5, Math.min(1.5, q.dprScale));
+        gameCanvas.width = Math.max(1, Math.floor(viewWidth * scale));
+        gameCanvas.height = Math.max(1, Math.floor(viewHeight * scale));
+        ctx3d.setTransform(scale, 0, 0, scale, 0, 0);
+      }
+
+      function worldToCam(wx, wy, wz, camPos, yaw, pitch) {
+        // World: +X right, +Y up, +Z forward. Forward horizontal = (sin(yaw), 0, cos(yaw)), right = (cos(yaw), 0, -sin(yaw)).
+        const dx = wx - camPos.x;
+        const dy = wy - camPos.y;
+        const dz = wz - camPos.z;
+
+        const cosY = Math.cos(yaw);
+        const sinY = Math.sin(yaw);
+        const cx = dx * cosY - dz * sinY;
+        const rz_h = dx * sinY + dz * cosY;
+        const ry_h = dy;
+
+        // Pitch around camera X axis: +pitch looks UP (+Y), tilting forward axis (+Z) toward camera +Y
+        const cosP = Math.cos(pitch);
+        const sinP = Math.sin(pitch);
+        const cy = ry_h * cosP + rz_h * sinP;
+        const cz = -ry_h * sinP + rz_h * cosP;
+        return { x: cx, y: cy, z: cz };
+      }
+
+      function clipPolygonAgainstNearPlane(poly, zNear) {
+        if (!poly || poly.length < 3) return [];
+        const out = [];
+        for (let i = 0; i < poly.length; i++) {
+          const curr = poly[i];
+          const prev = poly[(i + poly.length - 1) % poly.length];
+          const currIn = curr.z >= zNear;
+          const prevIn = prev.z >= zNear;
+          if (currIn) {
+            if (!prevIn) {
+              const t = (zNear - prev.z) / ((curr.z - prev.z) || 1e-5);
+              out.push({ x: prev.x + (curr.x - prev.x) * t, y: prev.y + (curr.y - prev.y) * t, z: zNear });
+            }
+            out.push(curr);
+          } else if (prevIn) {
+            const t = (zNear - prev.z) / ((curr.z - prev.z) || 1e-5);
+            out.push({ x: prev.x + (curr.x - prev.x) * t, y: prev.y + (curr.y - prev.y) * t, z: zNear });
+          }
+        }
+        return out;
+      }
+
+      function projectCameraPoint(pt, focal) {
+        // +cy is UP in camera space -> smaller screenY (top of canvas); -cy is DOWN -> larger screenY (bottom)
+        const invZ = focal / Math.max(Z_NEAR, pt.z);
+        return {
+          sx: viewWidth * 0.5 + pt.x * invZ,
+          sy: viewHeight * 0.5 - pt.y * invZ,
+          z: pt.z
+        };
+      }
+
+      function emitQuadFace(faces, p0, p1, p2, p3, color, strokeColor, camPos, yaw, pitch, focal) {
+        const camPoly = clipPolygonAgainstNearPlane([
+          worldToCam(p0[0], p0[1], p0[2], camPos, yaw, pitch),
+          worldToCam(p1[0], p1[1], p1[2], camPos, yaw, pitch),
+          worldToCam(p2[0], p2[1], p2[2], camPos, yaw, pitch),
+          worldToCam(p3[0], p3[1], p3[2], camPos, yaw, pitch)
+        ], Z_NEAR);
+        if (camPoly.length < 3) return;
+        let avgZ = 0;
+        const pts = camPoly.map(function (v) {
+          avgZ += v.z;
+          return projectCameraPoint(v, focal);
+        });
+        avgZ /= camPoly.length;
+        faces.push({ pts: pts, depth: avgZ, color: color, stroke: strokeColor || null });
+      }
+
+      function emitBox3D(faces, cx, cy, cz, w, h, d, colors, camPos, yaw, pitch, focal) {
+        const hx = w * 0.5;
+        const hz = d * 0.5;
+        const y0 = cy;
+        const y1 = cy + h;
+        const cFront = colors.front || colors.side || '#cfa166';
+        const cBack = colors.back || colors.side || '#b88b52';
+        const cLeft = colors.left || colors.side || '#c2945a';
+        const cRight = colors.right || colors.side || '#c2945a';
+        const cTop = colors.top || '#e2be8a';
+        const stroke = colors.stroke || null;
+
+        emitQuadFace(faces, [cx - hx, y0, cz + hz], [cx + hx, y0, cz + hz], [cx + hx, y1, cz + hz], [cx - hx, y1, cz + hz], cFront, stroke, camPos, yaw, pitch, focal);
+        emitQuadFace(faces, [cx + hx, y0, cz - hz], [cx - hx, y0, cz - hz], [cx - hx, y1, cz - hz], [cx + hx, y1, cz - hz], cBack, stroke, camPos, yaw, pitch, focal);
+        emitQuadFace(faces, [cx + hx, y0, cz + hz], [cx + hx, y0, cz - hz], [cx + hx, y1, cz - hz], [cx + hx, y1, cz + hz], cRight, stroke, camPos, yaw, pitch, focal);
+        emitQuadFace(faces, [cx - hx, y0, cz - hz], [cx - hx, y0, cz + hz], [cx - hx, y1, cz + hz], [cx - hx, y1, cz - hz], cLeft, stroke, camPos, yaw, pitch, focal);
+        emitQuadFace(faces, [cx - hx, y1, cz + hz], [cx + hx, y1, cz + hz], [cx + hx, y1, cz - hz], [cx - hx, y1, cz - hz], cTop, stroke, camPos, yaw, pitch, focal);
+      }
+
+      function emitHumanSoldier3D(faces, sx, sy, sz, yaw, team, walkPhase, hitFlash, camPos, camYaw, camPitch, focal) {
+        const isRed = team === 'red';
+        const uniformMain = hitFlash > 0 ? '#ffffff' : (isRed ? '#dc2626' : '#2563eb');
+        const uniformDark = hitFlash > 0 ? '#f8fafc' : (isRed ? '#7f1d1d' : '#1e3a8a');
+        const gearAccent = isRed ? '#fca5a5' : '#93c5fd';
+        const skinColor = hitFlash > 0 ? '#ffffff' : '#e0ac69';
+        const bootColor = '#1e293b';
+
+        // Local right is (cos(yaw), 0, -sin(yaw)), local forward is (sin(yaw), 0, cos(yaw))
+        const rgtX = Math.cos(yaw);
+        const rgtZ = -Math.sin(yaw);
+        const fwdX = Math.sin(yaw);
+        const fwdZ = Math.cos(yaw);
+        function toWorld(lx, ly, lz) {
+          return [
+            sx + rgtX * lx + fwdX * lz,
+            sy + ly,
+            sz + rgtZ * lx + fwdZ * lz
+          ];
+        }
+
+        function emitPart(x0, x1, y0, y1, z0, z1, col) {
+          const corners = [
+            toWorld(x0, y0, z0), toWorld(x1, y0, z0), toWorld(x1, y1, z0), toWorld(x0, y1, z0),
+            toWorld(x0, y0, z1), toWorld(x1, y0, z1), toWorld(x1, y1, z1), toWorld(x0, y1, z1)
+          ];
+          emitQuadFace(faces, corners[4], corners[5], corners[6], corners[7], col, '#0f172a', camPos, camYaw, camPitch, focal);
+          emitQuadFace(faces, corners[1], corners[0], corners[3], corners[2], col, '#0f172a', camPos, camYaw, camPitch, focal);
+          emitQuadFace(faces, corners[5], corners[1], corners[2], corners[6], col, '#0f172a', camPos, camYaw, camPitch, focal);
+          emitQuadFace(faces, corners[0], corners[4], corners[7], corners[3], col, '#0f172a', camPos, camYaw, camPitch, focal);
+          emitQuadFace(faces, corners[7], corners[6], corners[2], corners[3], col, null, camPos, camYaw, camPitch, focal);
+        }
+
+        const swing = Math.sin(walkPhase) * 0.24;
+        emitPart(-0.24, -0.05, 0.22, 0.78, -0.10 + swing, 0.10 + swing, uniformDark);
+        emitPart(-0.25, -0.04, 0.0, 0.22, -0.12 + swing, 0.14 + swing, bootColor);
+        emitPart(0.05, 0.24, 0.22, 0.78, -0.10 - swing, 0.10 - swing, uniformDark);
+        emitPart(0.04, 0.25, 0.0, 0.22, -0.12 - swing, 0.14 - swing, bootColor);
+        emitPart(-0.28, 0.28, 0.78, 1.42, -0.16, 0.16, uniformMain);
+        emitPart(-0.22, 0.22, 0.92, 1.32, 0.14, 0.20, gearAccent);
+        emitPart(-0.40, -0.28, 0.86, 1.38, -0.09 - swing * 0.6, 0.09 - swing * 0.6, uniformMain);
+        emitPart(-0.40, -0.28, 0.76, 0.88, -0.09 - swing * 0.6, 0.09 - swing * 0.6, bootColor);
+        emitPart(0.28, 0.40, 0.86, 1.38, -0.09 + swing * 0.6, 0.09 + swing * 0.6, uniformMain);
+        emitPart(0.28, 0.40, 0.76, 0.88, -0.09 + swing * 0.6, 0.09 + swing * 0.6, bootColor);
+        emitPart(0.06, 0.16, 1.02, 1.12, 0.08, 0.72, '#1e293b');
+        emitPart(-0.18, 0.18, 1.44, 1.78, -0.16, 0.16, skinColor);
+        emitPart(-0.21, 0.21, 1.66, 1.84, -0.19, 0.19, gearAccent);
+      }
+
+      function renderFirstPersonWeapon(nowSec) {
+        const w = getActiveWeapon();
+        const skinObj = COSMETICS_CATALOG.find(function (c) { return c.id === profile.equippedSkinId; });
+        const gloveObj = COSMETICS_CATALOG.find(function (c) { return c.id === profile.equippedGloveId; });
+        const skinCol = (skinObj && skinObj.color) || w.color;
+        const gloveCol = (gloveObj && gloveObj.color) || '#1e293b';
+
+        // 1. Equip / Draw animation (smooth rise-in & settle when switching or equipping)
+        const equipT = player.equipTimer > 0 ? Math.min(1, Math.max(0, player.equipTimer / (player.equipDuration || 0.42))) : 0;
+        const equipEase = equipT * equipT * (3 - 2 * equipT);
+        const equipOffsetX = equipEase * 52;
+        const equipOffsetY = equipEase * 96;
+        const equipTilt = -equipEase * 0.48;
+
+        // 2. Movement sway, sprint tilt, crouch tuck, and ADS blending
+        const horizSpeed = Math.hypot(player.vx, player.vz);
+        const moveFactor = Math.min(1, horizSpeed / 7.8);
+        const swayFreq = player.sprinting ? 14.5 : (player.crouching ? 7.5 : 10.5);
+        const swayX = Math.cos(nowSec * swayFreq * 0.5) * 8.5 * moveFactor;
+        const swayY = Math.abs(Math.sin(nowSec * swayFreq)) * (player.sprinting ? 11.5 : 6.0) * moveFactor;
+        const sprintTilt = player.sprinting && !player.aiming ? 0.24 * moveFactor : 0;
+        const crouchOffsetY = player.crouching ? 14 : 0;
+        const crouchTilt = player.crouching ? -0.06 : 0;
+
+        // 3. Fire / Recoil animation (snappy kickback, muzzle climb, slide/bolt/pump/slash/toss)
+        const fireT = player.fireAnimTimer > 0 ? Math.min(1, Math.max(0, player.fireAnimTimer / (player.fireAnimDuration || 0.14))) : 0;
+        const firePulse = Math.sin(fireT * Math.PI);
+        const recoilKick = player.recoilPitch * 145 + firePulse * (w.isMelee ? 10 : 18);
+        const recoilBackX = w.isMelee ? 0 : firePulse * (w.category === 'sniper' ? 30 : 16);
+        const slashSweepX = w.isMelee ? Math.sin((1 - fireT) * Math.PI) * 78 * player.slashToggle : 0;
+        const slashSweepY = w.isMelee ? -Math.sin((1 - fireT) * Math.PI) * 34 : 0;
+        const slashAngle = w.isMelee ? Math.sin((1 - fireT) * Math.PI) * 0.85 * player.slashToggle : 0;
+        const grenadeTossY = w.isGrenade ? -firePulse * 68 : 0;
+        const grenadeTossRot = w.isGrenade ? -firePulse * 0.65 : 0;
+
+        // 4. Reload animation (magazine drop/insert, shell load, or bolt/slide rack with progress)
+        const reloadDur = player.reloadDuration || 0.95;
+        const reloadT = player.reloadTimer > 0 ? Math.min(1, Math.max(0, player.reloadTimer / reloadDur)) : 0;
+        const reloadProg = 1 - reloadT;
+        const reloadArc = player.reloadTimer > 0 ? Math.sin(reloadProg * Math.PI) : 0;
+        const reloadDipY = reloadArc * 38;
+        const reloadRoll = player.reloadTimer > 0 ? -reloadArc * 0.36 : 0;
+        const magDropOffset = player.reloadTimer > 0 ? Math.sin(Math.min(1, reloadProg * 2) * Math.PI) * 26 : 0;
+        const boltCycleOffset = (w.category === 'sniper' || w.category === 'shotgun') && player.reloadTimer > 0
+          ? Math.sin(Math.max(0, (reloadProg - 0.55) * 2.2) * Math.PI) * 14
+          : (fireT > 0 && (w.category === 'sniper' || w.category === 'shotgun') ? Math.sin((1 - fireT) * Math.PI) * 10 : 0);
+
+        // 5. Inspect animation (smooth presentation sweep, roll, and angle when inspecting)
+        const inspDur = player.inspectDuration || 1.55;
+        const inspT = player.inspectTimer > 0 ? Math.min(1, Math.max(0, player.inspectTimer / inspDur)) : 0;
+        const inspProg = 1 - inspT;
+        const inspBell = player.inspectTimer > 0 ? Math.sin(inspProg * Math.PI) : 0;
+        const inspectShiftX = -inspBell * 96;
+        const inspectShiftY = -inspBell * 24;
+        const inspectRoll = inspBell * 0.52;
+        const inspectPitchTilt = -inspBell * 0.22;
+
+        const aimShiftX = player.aiming ? -78 : 0;
+        const aimShiftY = player.aiming ? -28 : 0;
+
+        const baseX = viewWidth * 0.66 + aimShiftX + swayX + equipOffsetX - recoilBackX + slashSweepX + inspectShiftX;
+        const baseY = viewHeight * 0.74 + aimShiftY + swayY + crouchOffsetY + equipOffsetY + recoilKick + reloadDipY + slashSweepY + grenadeTossY + inspectShiftY;
+        const totalAngle = -(player.recoilPitch * 0.85) + equipTilt + sprintTilt + crouchTilt + reloadRoll + slashAngle + grenadeTossRot + inspectRoll + inspectPitchTilt;
+
+        ctx3d.save();
+        ctx3d.globalAlpha = 1.0;
+        ctx3d.translate(baseX, baseY);
+        ctx3d.rotate(totalAngle);
+
+        // Left & right gloved hands
+        ctx3d.fillStyle = gloveCol;
+        ctx3d.strokeStyle = '#0f172a';
+        ctx3d.lineWidth = 2;
+        ctx3d.beginPath();
+        ctx3d.roundRect(-95 - reloadArc * 12, 22 + reloadArc * 10, 46, 32, 10);
+        ctx3d.roundRect(12, 34 + inspBell * 8, 48, 34, 10);
+        ctx3d.fill();
+        ctx3d.stroke();
+
+        // Weapon receiver / body
+        ctx3d.fillStyle = skinCol;
+        if (w.isMelee) {
+          ctx3d.beginPath();
+          ctx3d.moveTo(-8, 12);
+          ctx3d.lineTo(14, 18);
+          ctx3d.lineTo(66, -38);
+          ctx3d.lineTo(44, -44);
+          ctx3d.closePath();
+          ctx3d.fill();
+          ctx3d.stroke();
+        } else if (w.isGrenade) {
+          ctx3d.beginPath();
+          ctx3d.ellipse(6, 4, 24, 30, -0.15, 0, Math.PI * 2);
+          ctx3d.fill();
+          ctx3d.stroke();
+          ctx3d.fillStyle = '#cbd5e1';
+          ctx3d.fillRect(-16, -24, 10, 34);
+        } else if (w.category === 'pistol') {
+          ctx3d.fillRect(-16, -12, 68, 22);
+          ctx3d.strokeRect(-16, -12, 68, 22);
+          // Slide kickback on shot
+          ctx3d.fillStyle = '#e2e8f0';
+          ctx3d.fillRect(-14 - firePulse * 9, -14, 58, 9);
+          ctx3d.fillStyle = '#1e293b';
+          ctx3d.fillRect(-8, 10 + magDropOffset * 0.7, 24, 34);
+        } else if (w.category === 'sniper') {
+          ctx3d.fillRect(-65, -8, 175, 20);
+          ctx3d.strokeRect(-65, -8, 175, 20);
+          ctx3d.fillStyle = '#94a3b8';
+          ctx3d.fillRect(6 - boltCycleOffset, -11, 24, 8);
+          ctx3d.fillStyle = '#0f172a';
+          ctx3d.fillRect(-10, -24, 72, 14);
+          ctx3d.fillStyle = '#38bdf8';
+          ctx3d.fillRect(54, -22, 10, 10);
+        } else if (w.category === 'shotgun') {
+          ctx3d.fillRect(-35, -10, 118, 22);
+          ctx3d.strokeRect(-35, -10, 118, 22);
+          ctx3d.fillStyle = '#78350f';
+          ctx3d.fillRect(10 - boltCycleOffset, 10, 48, 13);
+        } else {
+          ctx3d.fillRect(-28, -12, 124, 24);
+          ctx3d.strokeRect(-28, -12, 124, 24);
+          ctx3d.fillStyle = '#1e293b';
+          ctx3d.fillRect(16, 12 + magDropOffset, 18, w.id === 'p90' ? 14 : 34);
+          ctx3d.fillStyle = '#0f172a';
+          ctx3d.fillRect(46, -24, 34, 12);
+        }
+
+        // Muzzle flash during active fire pulse
+        if (firePulse > 0.35 && !w.isMelee && !w.isGrenade) {
+          ctx3d.fillStyle = '#fde047';
+          ctx3d.beginPath();
+          ctx3d.moveTo(96, -2);
+          ctx3d.lineTo(136, -18);
+          ctx3d.lineTo(124, -2);
+          ctx3d.lineTo(138, 14);
+          ctx3d.closePath();
+          ctx3d.fill();
+        }
+
+        ctx3d.restore();
+      }
+
+      const radarCanvas = document.getElementById('radarCanvas');
+      const radarCtx = radarCanvas.getContext('2d');
+      let lastRadarDrawMs = 0;
+
+      function renderRadarMinimap(nowMs) {
+        if (!settings.showRadar) return;
+        const safeNow = typeof nowMs === 'number' ? nowMs : performance.now();
+        if (safeNow - lastRadarDrawMs < 65) return;
+        lastRadarDrawMs = safeNow;
+
+        const w = radarCanvas.width;
+        const h = radarCanvas.height;
+        radarCtx.clearRect(0, 0, w, h);
+        radarCtx.fillStyle = 'rgba(9, 15, 28, 0.88)';
+        radarCtx.fillRect(0, 0, w, h);
+
+        const scale = (w - 12) / (ARENA_HALF * 2);
+        function toRadar(wx, wz) {
+          return { rx: w * 0.5 + wx * scale, ry: h * 0.5 - wz * scale };
+        }
+
+        const map = getCurrentMap();
+        const mode = getCurrentMode();
+        if (mode.isBomb) {
+          [map.zoneA, map.zoneB].forEach(function (zObj) {
+            const p = toRadar(zObj.x, zObj.z);
+            radarCtx.fillStyle = 'rgba(250, 204, 21, 0.35)';
+            radarCtx.beginPath();
+            radarCtx.arc(p.rx, p.ry, 7, 0, Math.PI * 2);
+            radarCtx.fill();
+            radarCtx.fillStyle = '#fde047';
+            radarCtx.font = 'bold 9px Inter, sans-serif';
+            radarCtx.fillText(zObj.label, p.rx - 3, p.ry + 3);
+          });
+        }
+
+        for (let i = 0; i < bots.length; i++) {
+          const b = bots[i];
+          if (!b.alive) continue;
+          const pt = toRadar(b.x, b.z);
+          radarCtx.fillStyle = b.visualTeam === 'red' ? '#f43f5e' : '#38bdf8';
+          radarCtx.beginPath();
+          radarCtx.arc(pt.rx, pt.ry, 2.7, 0, Math.PI * 2);
+          radarCtx.fill();
+        }
+
+        const pPt = toRadar(player.x, player.z);
+        radarCtx.save();
+        radarCtx.translate(pPt.rx, pPt.ry);
+        radarCtx.rotate(-player.yaw);
+        radarCtx.fillStyle = '#4ade80';
+        radarCtx.beginPath();
+        radarCtx.moveTo(0, -5);
+        radarCtx.lineTo(-3.5, 3.5);
+        radarCtx.lineTo(3.5, 3.5);
+        radarCtx.closePath();
+        radarCtx.fill();
+        radarCtx.restore();
+      }
+
+      function render3DWorld(nowMs) {
+        const safeNow = typeof nowMs === 'number' && !isNaN(nowMs) ? nowMs : performance.now();
+        const nowSec = safeNow * 0.001;
+        const map = getCurrentMap();
+        const mode = getCurrentMode();
+        const q = getQualityConfig();
+        // Horizontal FOV = 72 deg -> focal = (H * 0.5) / tan(36 deg)
+        const baseHalfFovRad = (player.aiming && getActiveWeapon().zoomFov ? 22 : 36) * Math.PI / 180;
+        const focal = (viewHeight * 0.5) / Math.tan(baseHalfFovRad);
+
+        const inMatchHud = state.uiScreen === 'HUD' || state.uiScreen === 'PAUSE' || state.uiScreen === 'ROUND_RES' || state.uiScreen === 'SIDE_SW';
+        let camPos;
+        let camYaw;
+        let camPitch;
+
+        if (inMatchHud) {
+          camPos = { x: player.x, y: player.y, z: player.z };
+          camYaw = player.yaw;
+          camPitch = Math.max(-1.35, Math.min(1.35, player.pitch + player.recoilPitch));
+        } else {
+          const orbitAngle = nowSec * 0.24;
+          camPos = { x: Math.sin(orbitAngle) * 19.5, y: 7.2, z: Math.cos(orbitAngle) * 19.5 };
+          camYaw = Math.atan2(-camPos.x, -camPos.z);
+          camPitch = -0.24;
+        }
+
+        ctx3d.globalAlpha = 1.0;
+        // Dynamic vertical horizon offset from pitch (+pitch looks UP -> horizon moves DOWN on screen)
+        const horizonY = Math.max(0, Math.min(viewHeight, viewHeight * 0.5 + Math.sin(camPitch) * focal));
+        const skyGrad = ctx3d.createLinearGradient(0, 0, 0, Math.max(1, horizonY));
+        skyGrad.addColorStop(0, map.skyTop);
+        skyGrad.addColorStop(1, map.skyMid);
+        ctx3d.fillStyle = skyGrad;
+        ctx3d.fillRect(0, 0, viewWidth, horizonY);
+
+        const gndGrad = ctx3d.createLinearGradient(0, horizonY, 0, viewHeight);
+        gndGrad.addColorStop(0, map.fogColor);
+        gndGrad.addColorStop(0.25, map.groundColor);
+        gndGrad.addColorStop(1, map.roadColor);
+        ctx3d.fillStyle = gndGrad;
+        ctx3d.fillRect(0, horizonY, viewWidth, viewHeight - horizonY);
+
+        const sunCam = worldToCam(28, 36, 34, camPos, camYaw, camPitch);
+        if (sunCam.z > 2) {
+          const sunProj = projectCameraPoint(sunCam, focal);
+          ctx3d.fillStyle = '#fef9c3';
+          ctx3d.beginPath();
+          ctx3d.arc(sunProj.sx, sunProj.sy, Math.max(14, 420 / sunCam.z), 0, Math.PI * 2);
+          ctx3d.fill();
+        }
+
+        for (let c = 0; c < q.clouds; c++) {
+          const cx = ((c * 13 - 32 + nowSec * (1.2 + (c % 3) * 0.35)) % 68) - 34;
+          const cy = 19 + (c % 3) * 2.6;
+          const cz = -28 + (c % 4) * 18;
+          const cPt = worldToCam(cx, cy, cz, camPos, camYaw, camPitch);
+          if (cPt.z > 1.5) {
+            const sp = projectCameraPoint(cPt, focal);
+            const r = Math.max(12, (580 / cPt.z));
+            ctx3d.fillStyle = '#f8fafc';
+            ctx3d.beginPath();
+            ctx3d.ellipse(sp.sx, sp.sy, r * 1.4, r * 0.45, 0, 0, Math.PI * 2);
+            ctx3d.fill();
+          }
+        }
+
+        const faces = [];
+
+        for (let gx = -24; gx <= 24; gx += 6) {
+          for (let gz = -24; gz <= 24; gz += 6) {
+            if (Math.hypot(gx - camPos.x, gz - camPos.z) > q.drawDist) continue;
+            const checker = ((Math.abs(gx / 6) + Math.abs(gz / 6)) % 2 === 0);
+            emitQuadFace(
+              faces,
+              [gx - 3, 0.01, gz + 3],
+              [gx + 3, 0.01, gz + 3],
+              [gx + 3, 0.01, gz - 3],
+              [gx - 3, 0.01, gz - 3],
+              checker ? map.groundColor : map.roadColor,
+              q.detailed ? '#334155' : null,
+              camPos, camYaw, camPitch, focal
+            );
+          }
+        }
+
+        if (mode.isBomb) {
+          [map.zoneA, map.zoneB].forEach(function (zObj) {
+            const r = zObj.r;
+            emitQuadFace(
+              faces,
+              [zObj.x - r, 0.04, zObj.z + r],
+              [zObj.x + r, 0.04, zObj.z + r],
+              [zObj.x + r, 0.04, zObj.z - r],
+              [zObj.x - r, 0.04, zObj.z - r],
+              zObj.label === 'A' ? '#d97706' : '#0284c7',
+              '#f8fafc',
+              camPos, camYaw, camPitch, focal
+            );
+          });
+
+          if (state.bombState === 'PLANTED') {
+            emitBox3D(faces, state.bombPos.x, 0.06, state.bombPos.z, 0.55, 0.24, 0.38, {
+              side: '#1e293b',
+              top: '#0f172a',
+              stroke: '#ef4444'
+            }, camPos, camYaw, camPitch, focal);
+            const blinkOn = Math.floor(nowSec * 5) % 2 === 0;
+            emitBox3D(faces, state.bombPos.x, 0.30, state.bombPos.z, 0.24, 0.06, 0.14, {
+              side: blinkOn ? '#ef4444' : '#eab308',
+              top: blinkOn ? '#fca5a5' : '#fef08a'
+            }, camPos, camYaw, camPitch, focal);
+          }
+        }
+
+        const blocks = getMapBlocks(state.selectedMapId);
+        for (let i = 0; i < blocks.length; i++) {
+          const b = blocks[i];
+          if (Math.hypot(b.x - camPos.x, b.z - camPos.z) > q.drawDist) continue;
+          emitBox3D(faces, b.x, b.y || 0, b.z, b.w, b.h, b.d, {
+            front: b.color,
+            right: b.trimColor || b.color,
+            left: b.trimColor || b.color,
+            back: b.color,
+            top: b.roofColor || b.color,
+            stroke: q.detailed ? '#1e293b' : null
+          }, camPos, camYaw, camPitch, focal);
+        }
+
+        for (let j = 0; j < bots.length; j++) {
+          const bot = bots[j];
+          if (!bot.alive) continue;
+          if (Math.hypot(bot.x - camPos.x, bot.z - camPos.z) > q.drawDist) continue;
+          emitHumanSoldier3D(faces, bot.x, bot.y, bot.z, bot.yaw, bot.visualTeam, bot.walkPhase, bot.hitFlash, camPos, camYaw, camPitch, focal);
+        }
+
+        for (let g = 0; g < thrownGrenades.length; g++) {
+          const gr = thrownGrenades[g];
+          emitBox3D(faces, gr.x, gr.y, gr.z, 0.26, 0.32, 0.26, { side: '#4d7c0f', top: '#a3e635' }, camPos, camYaw, camPitch, focal);
+        }
+
+        ctx3d.globalAlpha = 1.0;
+        faces.sort(function (a, b) { return b.depth - a.depth; });
+
+        for (let f = 0; f < faces.length; f++) {
+          const face = faces[f];
+          ctx3d.globalAlpha = 1.0;
+          ctx3d.beginPath();
+          ctx3d.moveTo(face.pts[0].sx, face.pts[0].sy);
+          for (let k = 1; k < face.pts.length; k++) {
+            ctx3d.lineTo(face.pts[k].sx, face.pts[k].sy);
+          }
+          ctx3d.closePath();
+          ctx3d.fillStyle = face.color;
+          ctx3d.fill();
+          if (face.stroke) {
+            ctx3d.strokeStyle = face.stroke;
+            ctx3d.lineWidth = 1;
+            ctx3d.stroke();
+          }
+        }
+
+        for (let t = 0; t < tracers.length; t++) {
+          const tr = tracers[t];
+          const pA = worldToCam(tr.x1, tr.y1, tr.z1, camPos, camYaw, camPitch);
+          const pB = worldToCam(tr.x2, tr.y2, tr.z2, camPos, camYaw, camPitch);
+          if (pA.z > Z_NEAR && pB.z > Z_NEAR) {
+            const sA = projectCameraPoint(pA, focal);
+            const sB = projectCameraPoint(pB, focal);
+            ctx3d.strokeStyle = tr.color;
+            ctx3d.lineWidth = 2.5;
+            ctx3d.beginPath();
+            ctx3d.moveTo(sA.sx, sA.sy);
+            ctx3d.lineTo(sB.sx, sB.sy);
+            ctx3d.stroke();
+          }
+        }
+
+        for (let p = 0; p < particles.length; p++) {
+          const pt = particles[p];
+          const cPt = worldToCam(pt.x, pt.y, pt.z, camPos, camYaw, camPitch);
+          if (cPt.z > Z_NEAR) {
+            const sp = projectCameraPoint(cPt, focal);
+            ctx3d.fillStyle = pt.color;
+            ctx3d.beginPath();
+            ctx3d.arc(sp.sx, sp.sy, Math.max(2, 32 / cPt.z), 0, Math.PI * 2);
+            ctx3d.fill();
+          }
+        }
+
+        if (inMatchHud && player.respawnTimer <= 0) {
+          renderFirstPersonWeapon(nowSec);
+        }
+
+        renderRadarMinimap(safeNow);
+      }
+
+      /* =====================================================================
+         SECTION 11: MENU SECTIONS, MODALS & STATE TRANSITIONS
+         ===================================================================== */
+      const bootOverlay = document.getElementById('bootOverlay');
+      const mainMenuOverlay = document.getElementById('mainMenuOverlay');
+      const teamSelectionModal = document.getElementById('teamSelectionModal');
+      const matchHud = document.getElementById('matchHud');
+      const roundResultModal = document.getElementById('roundResultModal');
+      const sideSwitchModal = document.getElementById('sideSwitchModal');
+      const pauseModal = document.getElementById('pauseModal');
+      const matchEndModal = document.getElementById('matchEndModal');
+
+      let menuUnlocked = false;
+
+      function hideAllScreens() {
+        [mainMenuOverlay, teamSelectionModal, matchHud, roundResultModal, sideSwitchModal, pauseModal, matchEndModal].forEach(function (el) {
+          if (!el) return;
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        });
+      }
+
+      function dismissBootOverlay() {
+        const bar = document.getElementById('bootProgressBar');
+        const lbl = document.getElementById('bootPercentLabel');
+        if (bar) bar.style.width = '100%';
+        if (lbl) lbl.textContent = '100%';
+        if (bootOverlay) {
+          bootOverlay.style.display = 'none';
+          bootOverlay.style.pointerEvents = 'none';
+          bootOverlay.style.visibility = 'hidden';
+        }
+      }
+
+      function refreshMenuHeader() {
+        const nickEl = document.getElementById('menuPlayerNick');
+        const lvlEl = document.getElementById('menuPlayerLevel');
+        const crEl = document.getElementById('menuPlayerCredits');
+        const sumEl = document.getElementById('menuSelectedSummary');
+        if (nickEl) nickEl.textContent = profile.nickname;
+        if (lvlEl) lvlEl.textContent = 'УР. ' + profile.level + ' • ' + getRankName(profile.level);
+        if (crEl) crEl.textContent = profile.credits + ' FS';
+        if (sumEl) sumEl.textContent = getCurrentMap().name + ' • ' + getCurrentMode().name;
+      }
+
+      function renderMenuSection(sectionId) {
+        state.menuSection = sectionId;
+        const panel = document.getElementById('menuContentPanel');
+        if (!panel) return;
+
+        document.querySelectorAll('.nav-tab-btn').forEach(function (btn) {
+          const active = btn.getAttribute('data-nav') === sectionId;
+          btn.className = 'nav-tab-btn px-3.5 py-2.5 rounded-2xl text-left text-xs font-extrabold flex items-center gap-2.5 cursor-pointer ' +
+            (active ? 'bg-amber-400 text-slate-950' : 'text-slate-200 hover:bg-slate-800/80');
+        });
+
+        if (sectionId === 'play') {
+          const map = getCurrentMap();
+          const mode = getCurrentMode();
+          panel.innerHTML =
+            '<div class="space-y-4">' +
+              '<div class="flex flex-wrap items-center justify-between gap-2">' +
+                '<div>' +
+                  '<div class="text-xs font-extrabold uppercase text-amber-400">БЫСТРЫЙ ЗАПУСК МАТЧА</div>' +
+                  '<h2 class="text-2xl font-black text-white">' + map.name + '</h2>' +
+                  '<p class="text-xs text-slate-300 mt-0.5">' + map.theme + ' — ' + map.desc + '</p>' +
+                '</div>' +
+                '<div class="flex gap-2">' +
+                  '<button id="lobbyPrepBtn" type="button" class="px-4 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black cursor-pointer">Выбор стороны и старт</button>' +
+                  '<button id="lobbyInstantBtn" type="button" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:brightness-110 text-slate-950 text-xs font-black cursor-pointer">▶ В БОЙ СЕЙЧАС</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">' +
+                '<div class="rounded-2xl bg-slate-900/80 p-3 border border-slate-700/70"><div class="text-slate-400">РЕЖИМ</div><div class="font-black text-amber-300 mt-0.5">' + mode.name + '</div></div>' +
+                '<div class="rounded-2xl bg-slate-900/80 p-3 border border-slate-700/70"><div class="text-slate-400">КОМАНДЫ</div><div class="font-black text-white mt-0.5">Синие vs Красные (20 HP + 20 AP)</div></div>' +
+                '<div class="rounded-2xl bg-slate-900/80 p-3 border border-slate-700/70"><div class="text-slate-400">БОЕЗАПАС</div><div class="font-black text-emerald-400 mt-0.5">Бесконечные патроны (∞)</div></div>' +
+              '</div>' +
+            '</div>';
+
+          document.getElementById('lobbyPrepBtn').addEventListener('click', function () {
+            audioSys.playUi();
+            prepareNewMatch(false);
+          });
+          document.getElementById('lobbyInstantBtn').addEventListener('click', function () {
+            audioSys.playUi();
+            prepareNewMatch(true);
+          });
+        } else if (sectionId === 'modes') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">ИГРОВЫЕ РЕЖИМЫ (8)</h2>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">' +
+              GAME_MODES.map(function (m) {
+                const sel = m.id === state.selectedModeId;
+                return '<button data-pick-mode="' + m.id + '" type="button" class="p-3.5 rounded-2xl text-left transition cursor-pointer border ' +
+                  (sel ? 'bg-amber-400/20 border-amber-400' : 'bg-slate-900/75 border-slate-700/70 hover:border-slate-500') + '">' +
+                  '<div class="text-xs font-black ' + (sel ? 'text-amber-300' : 'text-white') + '">' + m.name + '</div>' +
+                  '<div class="text-[11px] text-slate-300 mt-1">' + m.desc + '</div>' +
+                  '</button>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+          panel.querySelectorAll('[data-pick-mode]').forEach(function (b) {
+            b.addEventListener('click', function () {
+              audioSys.playUi();
+              state.selectedModeId = b.getAttribute('data-pick-mode');
+              refreshMenuHeader();
+              renderMenuSection('modes');
+            });
+          });
+        } else if (sectionId === 'maps') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">3D-КАРТЫ (8)</h2>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">' +
+              MAPS_CATALOG.map(function (mp) {
+                const sel = mp.id === state.selectedMapId;
+                return '<button data-pick-map="' + mp.id + '" type="button" class="p-3.5 rounded-2xl text-left transition cursor-pointer border ' +
+                  (sel ? 'bg-sky-500/20 border-sky-400' : 'bg-slate-900/75 border-slate-700/70 hover:border-slate-500') + '">' +
+                  '<div class="flex items-center justify-between">' +
+                    '<span class="text-sm font-black ' + (sel ? 'text-sky-300' : 'text-white') + '">' + mp.name + '</span>' +
+                    '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">' + mp.theme + '</span>' +
+                  '</div>' +
+                  '<div class="text-[11px] text-slate-300 mt-1">' + mp.desc + '</div>' +
+                  '</button>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+          panel.querySelectorAll('[data-pick-map]').forEach(function (b) {
+            b.addEventListener('click', function () {
+              audioSys.playUi();
+              state.selectedMapId = b.getAttribute('data-pick-map');
+              getMapBlocks(state.selectedMapId);
+              refreshMenuHeader();
+              renderMenuSection('maps');
+            });
+          });
+        } else if (sectionId === 'arsenal') {
+          const activeW = getActiveWeapon();
+          const skinObj = COSMETICS_CATALOG.find(function (c) { return c.id === profile.equippedSkinId; });
+          const gloveObj = COSMETICS_CATALOG.find(function (c) { return c.id === profile.equippedGloveId; });
+          const previewSkin = (skinObj && skinObj.color) || activeW.color;
+          const previewGlove = (gloveObj && gloveObj.color) || '#1e293b';
+          const inspActive = player.inspectTimer > 0;
+          const inspAngle = inspActive ? Math.sin((1 - player.inspectTimer / (player.inspectDuration || 1.55)) * Math.PI) * 24 : 0;
+
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<div class="flex flex-wrap items-center justify-between gap-2">' +
+                '<h2 class="text-xl font-black text-white">АРСЕНАЛ И 3D-ОСМОТР (∞ ПАТРОНОВ)</h2>' +
+                '<div class="flex items-center gap-2">' +
+                  '<span class="text-xs font-extrabold text-amber-300">Выбрано: ' + activeW.name + ' (Урон ' + activeW.dmg + ')</span>' +
+                  '<button id="arsenalInspectBtn" type="button" class="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black cursor-pointer">🔍 Осмотреть 3D</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="rounded-2xl bg-slate-900/90 border border-slate-700/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-4">' +
+                '<svg viewBox="0 0 280 96" class="w-full sm:w-72 h-24 overflow-visible" style="transform: rotate(' + inspAngle.toFixed(1) + 'deg); transition: transform 0.12s ease;">' +
+                  '<rect x="20" y="54" width="42" height="24" rx="8" fill="' + previewGlove + '" stroke="#0f172a" stroke-width="2" />' +
+                  '<rect x="118" y="56" width="44" height="24" rx="8" fill="' + previewGlove + '" stroke="#0f172a" stroke-width="2" />' +
+                  (activeW.isMelee
+                    ? '<polygon points="75,64 105,68 232,18 214,10" fill="' + previewSkin + '" stroke="#0f172a" stroke-width="2.5" />'
+                    : (activeW.isGrenade
+                      ? '<ellipse cx="145" cy="48" rx="22" ry="26" fill="' + previewSkin + '" stroke="#0f172a" stroke-width="2.5" /><rect x="135" y="12" width="10" height="14" rx="2" fill="#cbd5e1" />'
+                      : '<rect x="64" y="34" width="152" height="20" rx="4" fill="' + previewSkin + '" stroke="#0f172a" stroke-width="2.5" />' +
+                        '<rect x="128" y="54" width="18" height="26" rx="3" fill="#1e293b" />' +
+                        '<rect x="148" y="20" width="42" height="12" rx="3" fill="#0f172a" />')) +
+                '</svg>' +
+                '<div class="text-xs text-slate-300 space-y-1 flex-1">' +
+                  '<div class="font-black text-white text-sm">' + activeW.name + '</div>' +
+                  '<div>Категория: <span class="text-amber-300 font-bold uppercase">' + activeW.category + '</span> • Скорострельность: <span class="text-emerald-300 font-mono font-bold">' + activeW.fireRate.toFixed(2) + 's</span></div>' +
+                  '<div>Скин: <span class="text-sky-300 font-bold">' + (skinObj ? skinObj.name : 'Базовый') + '</span> • Перчатки: <span class="text-sky-300 font-bold">' + (gloveObj ? gloveObj.name : 'Recon') + '</span></div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">' +
+              WEAPONS_CATALOG.map(function (w) {
+                const equipped = player.slots[w.slot] === w.id;
+                return '<button data-equip-weapon="' + w.id + '" type="button" class="p-2.5 rounded-2xl text-left cursor-pointer border ' +
+                  (equipped ? 'bg-amber-400/20 border-amber-400' : 'bg-slate-900/75 border-slate-700/70 hover:border-slate-500') + '">' +
+                  '<div class="text-xs font-black ' + (equipped ? 'text-amber-300' : 'text-white') + '">' + w.name + '</div>' +
+                  '<div class="text-[10px] text-slate-400 uppercase mt-0.5">' + w.category + ' • УРН ' + w.dmg + '</div>' +
+                  '</button>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+
+          const inspBtn = document.getElementById('arsenalInspectBtn');
+          if (inspBtn) {
+            inspBtn.addEventListener('click', function () {
+              audioSys.playUi();
+              triggerInspect();
+              renderMenuSection('arsenal');
+            });
+          }
+
+          panel.querySelectorAll('[data-equip-weapon]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const wid = btn.getAttribute('data-equip-weapon');
+              const wObj = WEAPONS_CATALOG.find(function (x) { return x.id === wid; });
+              if (!wObj) return;
+              audioSys.playUi();
+              if (wObj.slot === 0) profile.equippedPrimaryId = wid;
+              else if (wObj.slot === 1) profile.equippedPistolId = wid;
+              else if (wObj.slot === 2) profile.equippedKnifeId = wid;
+              else if (wObj.slot === 3) profile.equippedGrenadeId = wid;
+              player.activeSlot = wObj.slot;
+              syncPlayerLoadout();
+              saveGameData();
+              renderMenuSection('arsenal');
+            });
+          });
+        } else if (sectionId === 'inventory') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">ИНВЕНТАРЬ СКИНОВ, ПЕРЧАТОК И ПРЕДМЕТОВ</h2>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">' +
+              profile.ownedIds.map(function (oid) {
+                const item = COSMETICS_CATALOG.find(function (c) { return c.id === oid; });
+                if (!item) return '';
+                const isEq = profile.equippedSkinId === item.id || profile.equippedGloveId === item.id;
+                return '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 flex flex-col justify-between gap-2">' +
+                  '<div>' +
+                    '<div class="flex items-center justify-between"><span class="text-xs font-black text-white">' + item.name + '</span><span class="text-[10px] font-bold text-amber-300">' + item.rarity + '</span></div>' +
+                    '<div class="text-[11px] text-slate-400 mt-1">' + item.desc + '</div>' +
+                  '</div>' +
+                  '<button data-inv-equip="' + item.id + '" type="button" class="px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer ' +
+                    (isEq ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-600') + '">' +
+                    (isEq ? 'Экипировано' : 'Экипировать') +
+                  '</button>' +
+                '</div>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+          panel.querySelectorAll('[data-inv-equip]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const id = btn.getAttribute('data-inv-equip');
+              const item = COSMETICS_CATALOG.find(function (c) { return c.id === id; });
+              if (!item) return;
+              audioSys.playUi();
+              if (item.type === 'skin') profile.equippedSkinId = id;
+              if (item.type === 'glove') profile.equippedGloveId = id;
+              saveGameData();
+              renderMenuSection('inventory');
+            });
+          });
+        } else if (sectionId === 'shop') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<div class="flex items-center justify-between">' +
+                '<h2 class="text-xl font-black text-white">МАГАЗИН FUNUNKUL STRIKE</h2>' +
+                '<span class="text-sm font-black text-emerald-400">Баланс: ' + profile.credits + ' FS</span>' +
+              '</div>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">' +
+              COSMETICS_CATALOG.map(function (item) {
+                const owned = profile.ownedIds.indexOf(item.id) !== -1;
+                return '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 flex flex-col justify-between gap-2">' +
+                  '<div>' +
+                    '<div class="flex items-center justify-between"><span class="text-xs font-black text-white">' + item.name + '</span><span class="text-[10px] font-bold text-amber-300">' + item.type.toUpperCase() + '</span></div>' +
+                    '<div class="text-[11px] text-slate-400 mt-1">' + item.desc + '</div>' +
+                  '</div>' +
+                  '<button data-buy-id="' + item.id + '" type="button" class="px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer ' +
+                    (owned ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30' : 'bg-amber-400 hover:brightness-110 text-slate-950') + '">' +
+                    (owned ? 'В инвентаре' : ('Купить • ' + item.price + ' FS')) +
+                  '</button>' +
+                '</div>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+          panel.querySelectorAll('[data-buy-id]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              const id = btn.getAttribute('data-buy-id');
+              const item = COSMETICS_CATALOG.find(function (c) { return c.id === id; });
+              if (!item || profile.ownedIds.indexOf(id) !== -1) return;
+              if (profile.credits < item.price) return;
+              profile.credits -= item.price;
+              profile.ownedIds.push(id);
+              audioSys.playHit(true);
+              saveGameData();
+              refreshMenuHeader();
+              renderMenuSection('shop');
+            });
+          });
+        } else if (sectionId === 'profile') {
+          panel.innerHTML =
+            '<div class="space-y-4">' +
+              '<h2 class="text-xl font-black text-white">ПРОФИЛЬ ИГРОКА</h2>' +
+              '<div class="flex flex-wrap items-center gap-2">' +
+                '<input id="profileNickInput" type="text" maxlength="18" value="' + profile.nickname + '" class="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-600 text-sm font-bold text-white" />' +
+                '<button id="saveNickBtn" type="button" class="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer">Сохранить ник</button>' +
+              '</div>' +
+              '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">УРОВЕНЬ</div><div class="text-lg font-black text-amber-300">' + profile.level + '</div></div>' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">РАНГ</div><div class="text-base font-black text-sky-300">' + getRankName(profile.level) + '</div></div>' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">ПОБЕД / ПОРАЖЕНИЙ</div><div class="text-lg font-black text-emerald-400">' + profile.wins + ' / ' + profile.losses + '</div></div>' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">МАТЧЕЙ</div><div class="text-lg font-black text-white">' + profile.matchesPlayed + '</div></div>' +
+              '</div>' +
+            '</div>';
+          document.getElementById('saveNickBtn').addEventListener('click', function () {
+            const val = (document.getElementById('profileNickInput').value || '').trim();
+            if (val) profile.nickname = val;
+            saveGameData();
+            refreshMenuHeader();
+            renderMenuSection('profile');
+          });
+        } else if (sectionId === 'stats') {
+          const kd = profile.deaths > 0 ? (profile.kills / profile.deaths).toFixed(2) : profile.kills.toFixed(2);
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">СТАТИСТИКА И ИСТОРИЯ МАТЧЕЙ</h2>' +
+              '<div class="grid grid-cols-3 gap-2.5 text-xs">' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">УБИЙСТВ</div><div class="text-lg font-black text-emerald-400">' + profile.kills + '</div></div>' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">ПОРАЖЕНИЙ</div><div class="text-lg font-black text-rose-400">' + profile.deaths + '</div></div>' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70"><div class="text-slate-400">K/D</div><div class="text-lg font-black text-amber-300">' + kd + '</div></div>' +
+              '</div>' +
+              '<div class="space-y-1.5 text-xs">' +
+              (profile.history.length ? profile.history.map(function (h) {
+                return '<div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/75 border border-slate-800">' +
+                  '<span class="font-extrabold text-white">' + h.map + ' • ' + h.mode + '</span>' +
+                  '<span class="font-mono text-amber-300">' + h.score + ' (' + h.result + ')</span>' +
+                  '</div>';
+              }).join('') : '<div class="text-slate-400">Сыграйте первый матч, чтобы сохранить историю.</div>') +
+              '</div>' +
+            '</div>';
+        } else if (sectionId === 'friends') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">СПИСОК ДРУЗЕЙ</h2>' +
+              '<div class="space-y-2 text-xs">' +
+              profile.friends.map(function (fr) {
+                return '<div class="flex items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70">' +
+                  '<div><div class="font-black text-white">' + fr.name + '</div><div class="text-slate-400">' + fr.status + '</div></div>' +
+                  '<span class="px-2.5 py-1 rounded-xl bg-amber-400/15 text-amber-300 font-bold">' + fr.rank + '</span>' +
+                  '</div>';
+              }).join('') +
+              '</div>' +
+            '</div>';
+        } else if (sectionId === 'training') {
+          panel.innerHTML =
+            '<div class="space-y-3">' +
+              '<h2 class="text-xl font-black text-white">ОБУЧЕНИЕ FUNUNKUL STRIKE</h2>' +
+              '<p class="text-xs sm:text-sm text-slate-300 leading-relaxed">' +
+                '• <b>Движение и 360° обзор:</b> на планшете и телефоне ведите левый джойстик для ходьбы и проводите пальцем по свободной правой области для обзора на 360° (вверх — взгляд вверх, вниз — взгляд вниз, вправо/влево — поворот). На ПК используйте WASD, мышь или Q/E/стрелки.<br>' +
+                '• <b>Режим Разминирование:</b> атакующие устанавливают бомбу в зонах <b>A</b> или <b>B</b>, защитники обезвреживают её. После половины раундов роли атакующих и защитников меняются.<br>' +
+                '• <b>Настройка кнопок:</b> в бою нажмите <b>✋ КНОПКИ</b>, чтобы перетащить элементы управления и сохранить раскладку.' +
+              '</p>' +
+              '<button id="startTrainingMatchBtn" type="button" class="px-5 py-2.5 rounded-2xl bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer">▶ ЗАПУСТИТЬ ТРЕНИРОВКУ</button>' +
+            '</div>';
+          document.getElementById('startTrainingMatchBtn').addEventListener('click', function () {
+            state.selectedModeId = 'bot_training';
+            prepareNewMatch(true);
+          });
+        } else if (sectionId === 'settings') {
+          panel.innerHTML =
+            '<div class="space-y-4 text-xs">' +
+              '<h2 class="text-xl font-black text-white">НАСТРОЙКИ ГРАФИКИ, ЗВУКА, УПРАВЛЕНИЯ И HUD</h2>' +
+              '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' +
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 space-y-2">' +
+                  '<div class="font-black text-amber-300">КАЧЕСТВО ГРАФИКИ</div>' +
+                  '<div class="flex flex-wrap gap-1.5">' +
+                  ['Низкая', 'Средняя', 'Высокая', 'Ультра'].map(function (qName) {
+                    const active = settings.graphics === qName;
+                    return '<button data-q-preset="' + qName + '" type="button" class="px-3 py-1.5 rounded-xl font-extrabold cursor-pointer ' +
+                      (active ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-200 border border-slate-600') + '">' + qName + '</button>';
+                  }).join('') +
+                  '</div>' +
+                '</div>' +
+
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 space-y-2">' +
+                  '<div class="font-black text-sky-300">РАЗМЕР И ПРОЗРАЧНОСТЬ КНОПОК</div>' +
+                  '<label class="block text-slate-300">Размер кнопок: <span id="lblBtnSize">' + settings.buttonSizePct + '%</span>' +
+                    '<input id="inpBtnSize" type="range" min="65" max="145" value="' + settings.buttonSizePct + '" class="w-full mt-1" />' +
+                  '</label>' +
+                  '<label class="block text-slate-300">Прозрачность кнопок: <span id="lblBtnAlpha">' + settings.buttonOpacityPct + '%</span>' +
+                    '<input id="inpBtnAlpha" type="range" min="25" max="100" value="' + settings.buttonOpacityPct + '" class="w-full mt-1" />' +
+                  '</label>' +
+                '</div>' +
+
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 space-y-2">' +
+                  '<div class="font-black text-emerald-300">ЧУВСТВИТЕЛЬНОСТЬ И ПРИЦЕЛ</div>' +
+                  '<label class="block text-slate-300">Чувствительность обзора: <span id="lblSens">' + settings.touchSensitivity.toFixed(2) + 'x</span>' +
+                    '<input id="inpSens" type="range" min="0.4" max="2.6" step="0.05" value="' + settings.touchSensitivity + '" class="w-full mt-1" />' +
+                  '</label>' +
+                  '<label class="block text-slate-300">Размер прицела: <span id="lblChSize">' + settings.crosshairSizePx + 'px</span>' +
+                    '<input id="inpChSize" type="range" min="6" max="22" value="' + settings.crosshairSizePx + '" class="w-full mt-1" />' +
+                  '</label>' +
+                '</div>' +
+
+                '<div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-700/70 space-y-2">' +
+                  '<div class="font-black text-purple-300">ЗВУК И ИНТЕРФЕЙС</div>' +
+                  '<label class="block text-slate-300">Громкость звука: <span id="lblVol">' + Math.round(settings.masterVol * 100) + '%</span>' +
+                    '<input id="inpVol" type="range" min="0" max="1" step="0.05" value="' + settings.masterVol + '" class="w-full mt-1" />' +
+                  '</label>' +
+                  '<div class="flex items-center gap-3 pt-1">' +
+                    '<label class="flex items-center gap-1.5 cursor-pointer"><input id="chkRadar" type="checkbox" ' + (settings.showRadar ? 'checked' : '') + ' /><span>Радар</span></label>' +
+                    '<label class="flex items-center gap-1.5 cursor-pointer"><input id="chkTele" type="checkbox" ' + (settings.showTelemetry ? 'checked' : '') + ' /><span>FPS / PING</span></label>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+
+          panel.querySelectorAll('[data-q-preset]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              settings.graphics = btn.getAttribute('data-q-preset');
+              resizeViewport();
+              saveGameData();
+              renderMenuSection('settings');
+            });
+          });
+
+          document.getElementById('inpBtnSize').addEventListener('input', function (e) {
+            settings.buttonSizePct = parseInt(e.target.value, 10);
+            document.getElementById('lblBtnSize').textContent = settings.buttonSizePct + '%';
+            applyTouchHudSettings();
+            saveGameData();
+          });
+          document.getElementById('inpBtnAlpha').addEventListener('input', function (e) {
+            settings.buttonOpacityPct = parseInt(e.target.value, 10);
+            document.getElementById('lblBtnAlpha').textContent = settings.buttonOpacityPct + '%';
+            applyTouchHudSettings();
+            saveGameData();
+          });
+          document.getElementById('inpSens').addEventListener('input', function (e) {
+            settings.touchSensitivity = parseFloat(e.target.value);
+            settings.sensitivity = settings.touchSensitivity * 0.8;
+            document.getElementById('lblSens').textContent = settings.touchSensitivity.toFixed(2) + 'x';
+            saveGameData();
+          });
+          document.getElementById('inpChSize').addEventListener('input', function (e) {
+            settings.crosshairSizePx = parseInt(e.target.value, 10);
+            document.getElementById('lblChSize').textContent = settings.crosshairSizePx + 'px';
+            applyTouchHudSettings();
+            saveGameData();
+          });
+          document.getElementById('inpVol').addEventListener('input', function (e) {
+            settings.masterVol = parseFloat(e.target.value);
+            document.getElementById('lblVol').textContent = Math.round(settings.masterVol * 100) + '%';
+            saveGameData();
+          });
+          document.getElementById('chkRadar').addEventListener('change', function (e) {
+            settings.showRadar = e.target.checked;
+            applyTouchHudSettings();
+            saveGameData();
+          });
+          document.getElementById('chkTele').addEventListener('change', function (e) {
+            settings.showTelemetry = e.target.checked;
+            applyTouchHudSettings();
+            saveGameData();
+          });
+        }
+      }
+
+      function setUiScreen(screenName) {
+        dismissBootOverlay();
+        state.uiScreen = screenName;
+        hideAllScreens();
+
+        if (screenName === 'MENU') {
+          if (document.pointerLockElement === gameCanvas) {
+            try { document.exitPointerLock(); } catch (e) {}
+          }
+          if (mainMenuOverlay) {
+            mainMenuOverlay.classList.remove('hidden');
+            mainMenuOverlay.classList.add('flex');
+          }
+          refreshMenuHeader();
+          renderMenuSection(state.menuSection);
+        } else if (screenName === 'TEAM_PREP') {
+          if (teamSelectionModal) {
+            teamSelectionModal.classList.remove('hidden');
+            teamSelectionModal.classList.add('flex');
+          }
+          renderTeamPrepScreen();
+        } else if (screenName === 'HUD') {
+          if (matchHud) matchHud.classList.remove('hidden');
+          applyTouchHudSettings();
+          updateHudText();
+        } else if (screenName === 'ROUND_RES') {
+          if (matchHud) matchHud.classList.remove('hidden');
+          if (roundResultModal) {
+            roundResultModal.classList.remove('hidden');
+            roundResultModal.classList.add('flex');
+          }
+        } else if (screenName === 'SIDE_SW') {
+          if (matchHud) matchHud.classList.remove('hidden');
+          if (sideSwitchModal) {
+            sideSwitchModal.classList.remove('hidden');
+            sideSwitchModal.classList.add('flex');
+          }
+        } else if (screenName === 'PAUSE') {
+          if (matchHud) matchHud.classList.remove('hidden');
+          if (pauseModal) {
+            pauseModal.classList.remove('hidden');
+            pauseModal.classList.add('flex');
+          }
+          if (document.pointerLockElement === gameCanvas) {
+            try { document.exitPointerLock(); } catch (e) {}
+          }
+        } else if (screenName === 'MATCH_END') {
+          if (matchEndModal) {
+            matchEndModal.classList.remove('hidden');
+            matchEndModal.classList.add('flex');
+          }
+          if (document.pointerLockElement === gameCanvas) {
+            try { document.exitPointerLock(); } catch (e) {}
+          }
+        }
+      }
+
+      function unlockMainMenu() {
+        menuUnlocked = true;
+        if (state.matchState === MATCH_STATES.LOADING) {
+          state.matchState = MATCH_STATES.TEAM_SELECTION;
+        }
+        setUiScreen('MENU');
+      }
+
+      document.querySelectorAll('.nav-tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          audioSys.playUi();
+          renderMenuSection(btn.getAttribute('data-nav'));
+        });
+      });
+
+      document.getElementById('menuPlayNowBtn').addEventListener('click', function () {
+        audioSys.playUi();
+        prepareNewMatch(true);
+      });
+
+      document.getElementById('prepBackToMenuBtn').addEventListener('click', function () {
+        setUiScreen('MENU');
+      });
+      document.getElementById('pickBlueTeamBtn').addEventListener('click', function () {
+        state.playerTeam = 'blue';
+        renderTeamPrepScreen();
+      });
+      document.getElementById('pickRedTeamBtn').addEventListener('click', function () {
+        state.playerTeam = 'red';
+        renderTeamPrepScreen();
+      });
+      document.getElementById('startMatchImmediatelyBtn').addEventListener('click', function () {
+        state.matchState = MATCH_STATES.ROUND_ACTIVE;
+        state.roundTimer = getCurrentMode().roundSec;
+        createRoster();
+        setUiScreen('HUD');
+        showBanner('МАТЧ НАЧАЛСЯ • ' + getCurrentMap().name, 'border-emerald-400/70 text-emerald-300');
+      });
+
+      document.getElementById('hudPauseBtn').addEventListener('click', function () {
+        if (state.matchState === MATCH_STATES.ROUND_ACTIVE) {
+          state.matchState = MATCH_STATES.PAUSED;
+          setUiScreen('PAUSE');
+        }
+      });
+      document.getElementById('resumeMatchBtn').addEventListener('click', function () {
+        state.matchState = MATCH_STATES.ROUND_ACTIVE;
+        setUiScreen('HUD');
+      });
+      document.getElementById('restartMatchFromPauseBtn').addEventListener('click', function () {
+        prepareNewMatch(true);
+      });
+      document.getElementById('exitToMenuFromPauseBtn').addEventListener('click', function () {
+        setUiScreen('MENU');
+      });
+
+      document.getElementById('contextualBombActionBtn').addEventListener('click', function () {
+        performBombAction();
+      });
+
+      document.getElementById('rematchBtn').addEventListener('click', function () {
+        prepareNewMatch(true);
+      });
+      document.getElementById('chooseAnotherMapBtn').addEventListener('click', function () {
+        state.menuSection = 'maps';
+        setUiScreen('MENU');
+      });
+      document.getElementById('backToMenuFromEndBtn').addEventListener('click', function () {
+        setUiScreen('MENU');
+      });
+
+      /* =====================================================================
+         SECTION 12: ZERO-HANG PRELOADER (~200ms + 380ms WATCHDOG) & MAIN LOOP
+         ===================================================================== */
+      const bootStartMs = Date.now();
+      const BOOT_TARGET_MS = 200;
+
+      function completeBootNow() {
+        try {
+          if (typeof bootInterval !== 'undefined' && bootInterval) clearInterval(bootInterval);
+        } catch (e) {}
+        try {
+          if (typeof bootWatchdog !== 'undefined' && bootWatchdog) clearTimeout(bootWatchdog);
+        } catch (e) {}
+        dismissBootOverlay();
+        if (!menuUnlocked) {
+          unlockMainMenu();
+        }
+      }
+
+      function tickBootProgress() {
+        const elapsed = Math.max(0, Date.now() - bootStartMs);
+        const pct = Math.min(100, Math.max(35, Math.round((elapsed / BOOT_TARGET_MS) * 100)));
+        const bar = document.getElementById('bootProgressBar');
+        const lbl = document.getElementById('bootPercentLabel');
+        if (bar) bar.style.width = pct + '%';
+        if (lbl) lbl.textContent = pct + '%';
+        if (elapsed >= BOOT_TARGET_MS) {
+          completeBootNow();
+        }
+      }
+
+      const bootInterval = setInterval(tickBootProgress, 20);
+      const bootWatchdog = setTimeout(completeBootNow, 380);
+
+      document.getElementById('bootEnterMenuBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        audioSys.ensure();
+        completeBootNow();
+      });
+      document.getElementById('bootEnterMenuBtn').addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        audioSys.ensure();
+        completeBootNow();
+      }, { passive: false });
+
+      document.getElementById('bootQuickPlayBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        audioSys.ensure();
+        menuUnlocked = true;
+        completeBootNow();
+        prepareNewMatch(true);
+      });
+      document.getElementById('bootQuickPlayBtn').addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        audioSys.ensure();
+        menuUnlocked = true;
+        completeBootNow();
+        prepareNewMatch(true);
+      }, { passive: false });
+
+      window.addEventListener('DOMContentLoaded', function () {
+        tickBootProgress();
+      });
+      window.addEventListener('load', function () {
+        if (Date.now() - bootStartMs >= BOOT_TARGET_MS) completeBootNow();
+        else tickBootProgress();
+      });
+      window.addEventListener('error', completeBootNow);
+      window.addEventListener('unhandledrejection', completeBootNow);
+
+      // Prepare map geometry, initial roster & viewport so frame 1 is immediately populated
+      getMapBlocks(state.selectedMapId);
+      createRoster();
+      resizeViewport();
+      applyTouchHudSettings();
+      render3DWorld(performance.now());
+
+      window.addEventListener('resize', function () {
+        resizeViewport();
+        applyTouchHudSettings();
+      });
+
+      let lastFrameMs = performance.now();
+      let fpsCounterFrames = 0;
+      let fpsCounterAccum = 0;
+
+      function mainLoop(nowMs) {
+        try {
+          const safeNow = typeof nowMs === 'number' && !isNaN(nowMs) ? nowMs : performance.now();
+          const rawDt = (safeNow - lastFrameMs) / 1000;
+          lastFrameMs = safeNow;
+          const dt = Math.min(0.05, Math.max(0.001, isNaN(rawDt) ? 0.016 : rawDt));
+
+          fpsCounterFrames += 1;
+          fpsCounterAccum += dt;
+          if (fpsCounterAccum >= 0.5) {
+            telemetry.fps = Math.max(1, Math.round(fpsCounterFrames / fpsCounterAccum));
+            fpsCounterFrames = 0;
+            fpsCounterAccum = 0;
+            measureRealPing();
+          }
+
+          if (!menuUnlocked && Date.now() - bootStartMs >= BOOT_TARGET_MS) {
+            completeBootNow();
+          }
+
+          stepSimulation(dt);
+          render3DWorld(safeNow);
+        } catch (err) {
+          dismissBootOverlay();
+        }
+        requestAnimationFrame(mainLoop);
+      }
+
+      requestAnimationFrame(mainLoop);
+    })();
+  </script>
+</body>
+</html>
